@@ -1,0 +1,48 @@
+/Users/pankajahuja/Library/Python/3.9/lib/python/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+🚀 STARTING META-EVOLUTION
+Qwen will design test cases to evolve itself!
+This is recursive self-improvement in action.
+
+
+🔄 META-EVOLUTION CYCLE 1/10
+
+============================================================
+🌟 META-EVOLUTION: Qwen designs its own evolutionary pressure
+============================================================
+Starting version: v16
+🤖 Asking Qwen to design evolutionary test cases...
+   (This may take a few minutes - Qwen is thinking)
+
+🎯 Qwen designed 5 architectural pressure tests:
+   1. (+ 1 (+ 2 (+ 3 4)))
+   2. (car (cdr (cons 1 (cons 2 nil))))
+   3. (let ((x 1)) (let ((x 2)) x))
+   4. (if (> (+ 1 2) (* 3 4)) 5 6)
+   5. ((lambda (y) (* y y)) (+ 3 4))
+
+🧬 Evolving with: (+ 1 (+ 2 (+ 3 4)))
+❌ Evolution failed
+3.7 min)
+      New transpiler: 7556 chars
+   ❌ Still fails:   File "/var/folders/br/654g7l7s7031b363xgstbkl80000gn/T/tmp36nqdemz.py", line 279
+    This updated 
+
+😞 Evolution failed after all attempts
+
+
+🧬 Evolving with: (car (cdr (cons 1 (cons 2 nil))))
+❌ Evolution failed
+3.9 min)
+      New transpiler: 8480 chars
+   ❌ Still fails: #include <iostream>
+#include <vector>
+
+int main() {
+    std::vector<int> lst = {1, 2};
+    int resul
+
+😞 Evolution failed after all attempts
+
+
+🧬 Evolving with: (let ((x 1)) (let ((x 2)) x))

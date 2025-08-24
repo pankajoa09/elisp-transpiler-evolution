@@ -1,0 +1,126 @@
+[
+  {
+    "elisp": "(+ 1 2)",
+    "expected_output": "3"
+  },
+  {
+    "elisp": "(* 7 6)",
+    "expected_output": "42"
+  },
+  {
+    "elisp": "(> 5 3)",
+    "expected_output": "t"
+  },
+  {
+    "elisp": "(if (> 5 3) 10 20)",
+    "expected_output": "10"
+  },
+  {
+    "elisp": "(let ((x 5)) (* x 2))",
+    "expected_output": "10"
+  },
+  {
+    "elisp": "(defun square (x) (* x x))",
+    "expected_output": "square"
+  },
+  {
+    "elisp": "(car (quote (1 2 3)))",
+    "expected_output": "1"
+  },
+  {
+    "elisp": "(cdr (quote (1 2 3)))",
+    "expected_output": "(2 3)"
+  },
+  {
+    "elisp": "(+ 5 5)",
+    "expected_output": "10"
+  },
+  {
+    "elisp": "(- 10 3)",
+    "expected_output": "7"
+  },
+  {
+    "elisp": "(/ 20 4)",
+    "expected_output": "5"
+  },
+  {
+    "elisp": "(+ 2 3)",
+    "expected_output": "5"
+  },
+  {
+    "elisp": "(- 7 2)",
+    "expected_output": "5"
+  },
+  {
+    "elisp": "(* 3 3)",
+    "expected_output": "9"
+  },
+  {
+    "elisp": "(/ 8 2)",
+    "expected_output": "4"
+  },
+  {
+    "elisp": "(+ 10 15)",
+    "expected_output": "25"
+  },
+  {
+    "elisp": "(not t)",
+    "expected_output": "nil"
+  },
+  {
+    "elisp": "(< 2 5)",
+    "expected_output": "t"
+  },
+  {
+    "elisp": "(> 7 3)",
+    "expected_output": "t"
+  },
+  {
+    "elisp": "(= 5 5)",
+    "expected_output": "t"
+  },
+  {
+    "elisp": "(<= 3 3)",
+    "expected_output": "t"
+  },
+  {
+    "elisp": "(>= 4 2)",
+    "expected_output": "t"
+  },
+  {
+    "elisp": "t",
+    "expected_output": "t"
+  },
+  {
+    "elisp": "nil",
+    "expected_output": "nil"
+  },
+  {
+    "elisp": "(if t 1 2)",
+    "expected_output": "1"
+  },
+  {
+    "elisp": "(if nil 1 2)",
+    "expected_output": "2"
+  },
+  {
+    "elisp": "(if (> 3 2) 10 20)",
+    "expected_output": "10"
+  },
+  {
+    "elisp": "(let ((x 10)) x)",
+    "expected_output": "10"
+  },
+  {
+    "elisp": "(let ((x 5)) (+ x 1))",
+    "expected_output": "6"
+  },
+  {
+    "elisp": "(let ((x 3) (y 4)) (+ x y))",
+    "expected_output": "7"
+  },
+  {
+    "elisp": "(car (cdr (cons 1 (cons 2 nil))))",
+    "expected_output": "2"
+  }
+]
