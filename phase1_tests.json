@@ -1,0 +1,64 @@
+{
+  "tests": [
+    {
+      "name": "cond-basic",
+      "description": "Basic cond with multiple branches",
+      "expression": "(cond ((< 5 3) 1) ((> 5 3) 2) (t 3))",
+      "expected": "2"
+    },
+    {
+      "name": "cond-default",
+      "description": "cond falling through to default case",
+      "expression": "(cond ((< 5 3) 1) ((< 5 4) 2) (t 99))",
+      "expected": "99"
+    },
+    {
+      "name": "unless-true",
+      "description": "unless with false condition (executes body)",
+      "expression": "(unless (< 10 5) 42)",
+      "expected": "42"
+    },
+    {
+      "name": "unless-false",
+      "description": "unless with true condition (skips body)",
+      "expression": "(progn (unless (> 10 5) 42) 7)",
+      "expected": "7"
+    },
+    {
+      "name": "length-list",
+      "description": "Get length of a list",
+      "expression": "(length (list 1 2 3 4 5))",
+      "expected": "5"
+    },
+    {
+      "name": "nth-element",
+      "description": "Get nth element from list",
+      "expression": "(nth 2 (list 10 20 30 40))",
+      "expected": "30"
+    },
+    {
+      "name": "concat-strings",
+      "description": "Concatenate multiple strings",
+      "expression": "(concat \"Hello\" \" \" \"World\")",
+      "expected": "Hello World"
+    },
+    {
+      "name": "concat-empty",
+      "description": "Concatenate with empty string",
+      "expression": "(concat \"test\" \"\")",
+      "expected": "test"
+    },
+    {
+      "name": "substring-range",
+      "description": "Extract substring with start and end",
+      "expression": "(substring \"Hello World\" 0 5)",
+      "expected": "Hello"
+    },
+    {
+      "name": "substring-to-end",
+      "description": "Extract substring from position to end",
+      "expression": "(substring \"Hello World\" 6)",
+      "expected": "World"
+    }
+  ]
+}

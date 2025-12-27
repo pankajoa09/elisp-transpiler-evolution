@@ -7,6 +7,7 @@
 #include <cctype>
 #include <stdexcept>
 #include <algorithm>
+#include <cstring>
 
 // AST Node Types
 enum class NodeType {
@@ -296,13 +297,51 @@ class CodeGenerator {
                 }
 
                 if (op_name == "list") {
-                    std::string list_code = "{";
+                    std::string list_code = "std::vector<int>{";
                     for (size_t i = 1; i < node->children.size(); i++) {
                         if (i > 1) list_code += ", ";
                         list_code += generateExpr(node->children[i]);
                     }
                     list_code += "}";
                     return list_code;
+                }
+
+                // length - get list/string length
+                if (op_name == "length") {
+                    if (node->children.size() == 2) {
+                        return "(" + generateExpr(node->children[1]) + ").size()";
+                    }
+                }
+
+                // nth - get nth element
+                if (op_name == "nth") {
+                    if (node->children.size() == 3) {
+                        return "(" + generateExpr(node->children[2]) + ")[" +
+                               generateExpr(node->children[1]) + "]";
+                    }
+                }
+
+                // append - concatenate lists
+                if (op_name == "append") {
+                    if (node->children.size() == 3) {
+                        // Simple 2-list append
+                        std::string temp = getTempVar();
+                        code << "    auto " << temp << " = " << generateExpr(node->children[1]) << ";\n";
+                        code << "    " << temp << ".insert(" << temp << ".end(), "
+                             << generateExpr(node->children[2]) << ".begin(), "
+                             << generateExpr(node->children[2]) << ".end());\n";
+                        return temp;
+                    }
+                }
+
+                // reverse - reverse a list
+                if (op_name == "reverse") {
+                    if (node->children.size() == 2) {
+                        std::string temp = getTempVar();
+                        code << "    auto " << temp << " = " << generateExpr(node->children[1]) << ";\n";
+                        code << "    std::reverse(" << temp << ".begin(), " << temp << ".end());\n";
+                        return temp;
+                    }
                 }
 
                 // not - logical negation
@@ -325,6 +364,35 @@ class CodeGenerator {
                     return "\"\"";
                 }
 
+                // concat - concatenate strings
+                if (op_name == "concat") {
+                    if (node->children.size() >= 2) {
+                        std::string result = "std::string(\"\")";
+                        for (size_t i = 1; i < node->children.size(); i++) {
+                            result = "(" + result + " + " + generateExpr(node->children[i]) + ")";
+                        }
+                        return result;
+                    }
+                    return "std::string(\"\")";
+                }
+
+                // substring - extract substring
+                if (op_name == "substring") {
+                    if (node->children.size() >= 3) {
+                        std::string str = generateExpr(node->children[1]);
+                        std::string start = generateExpr(node->children[2]);
+                        // Wrap in std::string to support string literals
+                        std::string str_wrapped = "std::string(" + str + ")";
+                        if (node->children.size() >= 4) {
+                            std::string end = generateExpr(node->children[3]);
+                            return str_wrapped + ".substr(" + start + ", " + end + " - " + start + ")";
+                        } else {
+                            return str_wrapped + ".substr(" + start + ")";
+                        }
+                    }
+                    return "\"\"";
+                }
+
                 // if - as an expression (ternary operator)
                 if (op_name == "if") {
                     if (node->children.size() >= 3) {
@@ -333,6 +401,35 @@ class CodeGenerator {
                         std::string else_expr = node->children.size() > 3 ?
                                                generateExpr(node->children[3]) : "0";
                         return "(" + condition + " ? " + then_expr + " : " + else_expr + ")";
+                    }
+                }
+
+                // cond - as an expression (nested ternaries)
+                if (op_name == "cond") {
+                    if (node->children.size() >= 2) {
+                        std::string result;
+                        for (size_t i = node->children.size() - 1; i >= 1; i--) {
+                            auto clause = node->children[i];
+                            if (clause->type != NodeType::List || clause->children.empty()) continue;
+
+                            // Get the condition and result
+                            std::string condition = generateExpr(clause->children[0]);
+                            std::string value = clause->children.size() > 1 ?
+                                               generateExpr(clause->children[clause->children.size() - 1]) : "0";
+
+                            // Check for 't' (always true, default case)
+                            if (clause->children[0]->type == NodeType::Symbol &&
+                                clause->children[0]->str_value == "t") {
+                                result = value;
+                            } else {
+                                if (result.empty()) {
+                                    result = "(" + condition + " ? " + value + " : 0)";
+                                } else {
+                                    result = "(" + condition + " ? " + value + " : " + result + ")";
+                                }
+                            }
+                        }
+                        return result.empty() ? "0" : result;
                     }
                 }
 
@@ -538,6 +635,71 @@ class CodeGenerator {
             return;
         }
 
+        // cond - multi-branch conditional
+        if (op_name == "cond") {
+            if (node->children.size() < 2) return;
+
+            bool first = true;
+            for (size_t i = 1; i < node->children.size(); i++) {
+                auto clause = node->children[i];
+                if (clause->type != NodeType::List || clause->children.empty()) continue;
+
+                std::string condition = generateExpr(clause->children[0]);
+
+                if (first) {
+                    code << "    ";
+                    first = false;
+                } else {
+                    code << " else ";
+                }
+
+                // Check for 't' (default case)
+                if (clause->children[0]->type == NodeType::Symbol &&
+                    clause->children[0]->str_value == "t") {
+                    code << "{\n";
+                } else {
+                    code << "if (" << condition << ") {\n";
+                }
+
+                // Execute clause body
+                for (size_t j = 1; j < clause->children.size(); j++) {
+                    bool is_last_in_clause = (j == clause->children.size() - 1);
+                    if (is_last_in_clause && is_last) {
+                        // Print the last expression of any matched clause when cond is final statement
+                        code << "        std::cout << " << generateExpr(clause->children[j]) << " << std::endl;\n";
+                    } else if (is_last_in_clause) {
+                        code << "        " << generateExpr(clause->children[j]) << ";\n";
+                    } else {
+                        code << "        " << generateExpr(clause->children[j]) << ";\n";
+                    }
+                }
+
+                code << "    }";
+            }
+            code << "\n";
+            return;
+        }
+
+        // unless - opposite of when
+        if (op_name == "unless") {
+            if (node->children.size() < 3) return;
+
+            std::string condition = generateExpr(node->children[1]);
+            code << "    if (!(" << condition << ")) {\n";
+
+            for (size_t i = 2; i < node->children.size(); i++) {
+                bool is_last_expr = (i == node->children.size() - 1);
+                if (is_last_expr && is_last) {
+                    code << "        std::cout << " << generateExpr(node->children[i]) << " << std::endl;\n";
+                } else {
+                    code << "        " << generateExpr(node->children[i]) << ";\n";
+                }
+            }
+
+            code << "    }\n";
+            return;
+        }
+
         // when - conditional without else
         if (op_name == "when") {
             if (node->children.size() < 3) return;
@@ -622,6 +784,32 @@ class CodeGenerator {
 
             if (is_last) {
                 code << "    std::cout << \"nil\" << std::endl;\n";
+            }
+            return;
+        }
+
+        // dolist - iterate over list
+        if (op_name == "dolist") {
+            if (node->children.size() < 3) return;
+
+            auto spec = node->children[1];
+            if (spec->type == NodeType::List && spec->children.size() >= 2) {
+                std::string var = spec->children[0]->str_value;
+                std::string sanitized_var = sanitizeIdentifier(var);
+                std::string list_expr = generateExpr(spec->children[1]);
+
+                code << "    for (auto " << sanitized_var << " : " << list_expr << ") {\n";
+
+                for (size_t i = 2; i < node->children.size(); i++) {
+                    std::string expr = generateExpr(node->children[i]);
+                    code << "        " << expr << ";\n";
+                }
+
+                code << "    }\n";
+
+                if (is_last) {
+                    code << "    std::cout << \"nil\" << std::endl;\n";
+                }
             }
             return;
         }
