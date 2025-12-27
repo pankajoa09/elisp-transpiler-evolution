@@ -1,0 +1,94 @@
+{
+  "tests": [
+    {
+      "name": "Sum of squares",
+      "description": "Calculate sum of squares of two numbers",
+      "expression": "(defun sum-of-squares (a b) (+ (* a a) (* b b)))",
+      "expected": "sum-of-squares"
+    },
+    {
+      "name": "Absolute value",
+      "description": "Calculate absolute value using if",
+      "expression": "(defun abs (x) (if (< x 0) (- 0 x) x))",
+      "expected": "abs"
+    },
+    {
+      "name": "Max of two numbers",
+      "description": "Return maximum of two numbers",
+      "expression": "(defun max2 (a b) (if (> a b) a b))",
+      "expected": "max2"
+    },
+    {
+      "name": "Min of two numbers",
+      "description": "Return minimum of two numbers",
+      "expression": "(defun min2 (a b) (if (< a b) a b))",
+      "expected": "min2"
+    },
+    {
+      "name": "Even number test",
+      "description": "Test if number is even",
+      "expression": "(defun evenp (n) (= (/ (* n 2) 2) n))",
+      "expected": "evenp"
+    },
+    {
+      "name": "Power function",
+      "description": "Calculate x^n using recursion",
+      "expression": "(defun power (x n) (if (<= n 0) 1 (* x (power x (- n 1)))))",
+      "expected": "power"
+    },
+    {
+      "name": "GCD using Euclid",
+      "description": "Greatest common divisor",
+      "expression": "(defun gcd2 (a b) (if (= b 0) a (gcd2 b (- a (* (/ a b) b)))))",
+      "expected": "gcd2"
+    },
+    {
+      "name": "Fibonacci iterative",
+      "description": "Calculate fibonacci using iteration",
+      "expression": "(defun fib-iter (n a b count) (if (= count 0) b (fib-iter n b (+ a b) (- count 1))))",
+      "expected": "fib-iter"
+    },
+    {
+      "name": "Sign function",
+      "description": "Return -1, 0, or 1 based on sign",
+      "expression": "(defun sign (x) (if (< x 0) (- 0 1) (if (> x 0) 1 0)))",
+      "expected": "sign"
+    },
+    {
+      "name": "Average of three",
+      "description": "Calculate average of three numbers",
+      "expression": "(defun avg3 (a b c) (/ (+ a b c) 3))",
+      "expected": "avg3"
+    },
+    {
+      "name": "Is triangle valid",
+      "description": "Check triangle inequality",
+      "expression": "(defun valid-triangle (a b c) (and (> (+ a b) c) (and (> (+ b c) a) (> (+ a c) b))))",
+      "expected": "valid-triangle"
+    },
+    {
+      "name": "Clamp value",
+      "description": "Clamp value between min and max",
+      "expression": "(defun clamp (x min-val max-val) (if (< x min-val) min-val (if (> x max-val) max-val x)))",
+      "expected": "clamp"
+    },
+    {
+      "name": "Sum from 1 to n",
+      "description": "Calculate sum using formula",
+      "expression": "(defun sum-to-n (n) (/ (* n (+ n 1)) 2))",
+      "expected": "sum-to-n"
+    },
+    {
+      "name": "Countdown using while",
+      "description": "Count down and return 0",
+      "expression": "(defun countdown (n) (while (> n 0) (setq n (- n 1))) n)",
+      "expected": "countdown"
+    },
+    {
+      "name": "Complex nested if",
+      "description": "Multiple nested conditionals",
+      "expression": "(defun grade (score) (if (>= score 90) 'A (if (>= score 80) 'B (if (>= score 70) 'C 'F))))",
+      "expected": "grade"
+    }
+  ]
+}

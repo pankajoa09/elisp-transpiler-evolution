@@ -269,7 +269,7 @@ class CodeGenerator {
 
                 // Function call
                 if (user_functions.count(op_name)) {
-                    std::string call = op_name + "(";
+                    std::string call = sanitizeIdentifier(op_name) + "(";
                     for (size_t i = 1; i < node->children.size(); i++) {
                         if (i > 1) call += ", ";
                         call += generateExpr(node->children[i]);
