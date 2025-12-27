@@ -169,6 +169,32 @@ class CodeGenerator {
         return "temp_" + std::to_string(temp_var_counter++);
     }
 
+    std::string sanitizeIdentifier(const std::string& name) {
+        std::string result = name;
+        for (char& c : result) {
+            if (c == '-') c = '_';
+        }
+        return result;
+    }
+
+    void collectSetqVars(std::shared_ptr<ASTNode> node, std::vector<std::string>& vars) {
+        if (!node || node->type != NodeType::List || node->children.empty()) return;
+
+        auto& op = node->children[0];
+        if (op->type == NodeType::Symbol && op->str_value == "setq") {
+            for (size_t i = 1; i + 1 < node->children.size(); i += 2) {
+                vars.push_back(node->children[i]->str_value);
+                // Also check the value expression for nested setqs
+                collectSetqVars(node->children[i + 1], vars);
+            }
+        } else {
+            // Recursively check all children
+            for (auto& child : node->children) {
+                collectSetqVars(child, vars);
+            }
+        }
+    }
+
     std::string generateExpr(std::shared_ptr<ASTNode> node) {
         if (node->type == NodeType::Integer) {
             return std::to_string(node->int_value);
@@ -177,7 +203,7 @@ class CodeGenerator {
             if (node->str_value == "nil") {
                 return "0";
             }
-            return node->str_value;
+            return sanitizeIdentifier(node->str_value);
         } else if (node->type == NodeType::String) {
             return "\"" + node->str_value + "\"";
         } else if (node->type == NodeType::List && !node->children.empty()) {
@@ -291,6 +317,47 @@ class CodeGenerator {
                     }
                     return "\"\"";
                 }
+
+                // setq - as an expression (returns the assigned value)
+                if (op_name == "setq") {
+                    if (node->children.size() == 3) {
+                        // Single setq: (setq var value)
+                        std::string var_name = node->children[1]->str_value;
+                        std::string sanitized_var_name = sanitizeIdentifier(var_name);
+                        std::string value = generateExpr(node->children[2]);
+
+                        // Assignment expression returns the value
+                        return "(" + sanitized_var_name + " = " + value + ")";
+                    }
+                }
+
+                // let - as an expression (for nested let)
+                if (op_name == "let") {
+                    if (node->children.size() >= 3) {
+                        // Generate an inline lambda that executes the let bindings
+                        std::ostringstream lambda;
+                        auto bindings = node->children[1];
+
+                        lambda << "[&]() { ";
+
+                        if (bindings->type == NodeType::List) {
+                            for (auto& binding : bindings->children) {
+                                if (binding->type == NodeType::List && binding->children.size() >= 2) {
+                                    std::string var_name = binding->children[0]->str_value;
+                                    std::string sanitized_var_name = sanitizeIdentifier(var_name);
+                                    std::string value = generateExpr(binding->children[1]);
+                                    lambda << "int " << sanitized_var_name << " = " << value << "; ";
+                                }
+                            }
+                        }
+
+                        // Return the last expression
+                        std::string result = generateExpr(node->children[node->children.size() - 1]);
+                        lambda << "return " << result << "; }()";
+
+                        return lambda.str();
+                    }
+                }
             }
         }
 
@@ -309,20 +376,30 @@ class CodeGenerator {
 
         // setq - variable assignment
         if (op_name == "setq") {
+            // Collect all setq variables (including nested ones)
+            std::vector<std::string> all_setq_vars;
+            collectSetqVars(node, all_setq_vars);
+
+            // Declare all variables that haven't been declared yet
+            for (const std::string& var : all_setq_vars) {
+                if (!variables.count(var)) {
+                    variables[var] = "int";
+                    code << "    int " << sanitizeIdentifier(var) << ";\n";
+                }
+            }
+
+            std::string last_var;
             for (size_t i = 1; i + 1 < node->children.size(); i += 2) {
                 std::string var_name = node->children[i]->str_value;
+                std::string sanitized_var_name = sanitizeIdentifier(var_name);
                 std::string value = generateExpr(node->children[i + 1]);
 
-                if (!variables.count(var_name)) {
-                    variables[var_name] = "int";
-                    code << "    int " << var_name << " = " << value << ";\n";
-                } else {
-                    code << "    " << var_name << " = " << value << ";\n";
-                }
+                code << "    " << sanitized_var_name << " = " << value << ";\n";
+                last_var = sanitized_var_name;
+            }
 
-                if (is_last && i + 2 >= node->children.size()) {
-                    code << "    std::cout << " << var_name << " << std::endl;\n";
-                }
+            if (is_last && !last_var.empty()) {
+                code << "    std::cout << " << last_var << " << std::endl;\n";
             }
             return;
         }
@@ -332,31 +409,61 @@ class CodeGenerator {
             if (node->children.size() < 3) return;
 
             auto bindings = node->children[1];
-            code << "    {\n";
 
-            if (bindings->type == NodeType::List) {
-                for (auto& binding : bindings->children) {
-                    if (binding->type == NodeType::List && binding->children.size() >= 2) {
-                        std::string var_name = binding->children[0]->str_value;
-                        std::string value = generateExpr(binding->children[1]);
-                        code << "        int " << var_name << " = " << value << ";\n";
-                        variables[var_name] = "int";
+            if (is_last) {
+                std::string temp = getTempVar();
+                code << "    int " << temp << ";\n";
+                code << "    {\n";
+
+                if (bindings->type == NodeType::List) {
+                    for (auto& binding : bindings->children) {
+                        if (binding->type == NodeType::List && binding->children.size() >= 2) {
+                            std::string var_name = binding->children[0]->str_value;
+                            std::string sanitized_var_name = sanitizeIdentifier(var_name);
+                            std::string value = generateExpr(binding->children[1]);
+                            code << "        int " << sanitized_var_name << " = " << value << ";\n";
+                            variables[var_name] = "int";
+                        }
                     }
                 }
-            }
 
-            // Body
-            for (size_t i = 2; i < node->children.size(); i++) {
-                bool is_last_expr = (i == node->children.size() - 1);
-                if (is_last_expr && is_last) {
-                    std::string result = generateExpr(node->children[i]);
-                    code << "        std::cout << " << result << " << std::endl;\n";
-                } else {
-                    generateStatement(node->children[i], is_last_expr && is_last);
+                // Body - last expression sets the temp variable
+                for (size_t i = 2; i < node->children.size(); i++) {
+                    bool is_last_expr = (i == node->children.size() - 1);
+                    if (is_last_expr) {
+                        std::string result = generateExpr(node->children[i]);
+                        code << "        " << temp << " = " << result << ";\n";
+                    } else {
+                        std::string expr = generateExpr(node->children[i]);
+                        code << "        " << expr << ";\n";
+                    }
                 }
-            }
 
-            code << "    }\n";
+                code << "    }\n";
+                code << "    std::cout << " << temp << " << std::endl;\n";
+            } else {
+                code << "    {\n";
+
+                if (bindings->type == NodeType::List) {
+                    for (auto& binding : bindings->children) {
+                        if (binding->type == NodeType::List && binding->children.size() >= 2) {
+                            std::string var_name = binding->children[0]->str_value;
+                            std::string sanitized_var_name = sanitizeIdentifier(var_name);
+                            std::string value = generateExpr(binding->children[1]);
+                            code << "        int " << sanitized_var_name << " = " << value << ";\n";
+                            variables[var_name] = "int";
+                        }
+                    }
+                }
+
+                // Body
+                for (size_t i = 2; i < node->children.size(); i++) {
+                    std::string expr = generateExpr(node->children[i]);
+                    code << "        " << expr << ";\n";
+                }
+
+                code << "    }\n";
+            }
             return;
         }
 
@@ -365,6 +472,7 @@ class CodeGenerator {
             if (node->children.size() < 4) return;
 
             std::string func_name = node->children[1]->str_value;
+            std::string sanitized_func_name = sanitizeIdentifier(func_name);
             auto params = node->children[2];
 
             std::vector<std::string> param_names;
@@ -377,10 +485,10 @@ class CodeGenerator {
             user_functions[func_name] = {param_names, node->children[3]};
 
             // Generate function
-            functions << "int " << func_name << "(";
+            functions << "int " << sanitized_func_name << "(";
             for (size_t i = 0; i < param_names.size(); i++) {
                 if (i > 0) functions << ", ";
-                functions << "int " << param_names[i];
+                functions << "int " << sanitizeIdentifier(param_names[i]);
             }
             functions << ") {\n";
 
@@ -415,6 +523,20 @@ class CodeGenerator {
         // when - conditional without else
         if (op_name == "when") {
             if (node->children.size() < 3) return;
+
+            // Collect all setq variables in the when body
+            std::vector<std::string> all_setq_vars;
+            for (size_t i = 2; i < node->children.size(); i++) {
+                collectSetqVars(node->children[i], all_setq_vars);
+            }
+
+            // Declare all variables that haven't been declared yet
+            for (const std::string& var : all_setq_vars) {
+                if (!variables.count(var)) {
+                    variables[var] = "int";
+                    code << "    int " << sanitizeIdentifier(var) << ";\n";
+                }
+            }
 
             std::string condition = generateExpr(node->children[1]);
 

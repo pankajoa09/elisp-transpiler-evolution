@@ -1,0 +1,65 @@
+{
+  "phases": [
+    {
+
+      "tests": [
+        "(+ 1 2)",
+        "(- 5 3)",
+        "(* 2 4)",
+        "(/ 10 2)",
+        "(+ 0 0)"
+      
+
+
+        "(+ 1 (- 5 3))",
+        "(* (+ 2 3) (- 10 5))",
+        "(/ (+ 6 4) (- 8 6))",
+        "(+ (+ 1 2) (+ 3 4))",
+        "(- (+ (+ 1 2) 3) (* 2 2))"
+
+        "(+ 1 (+ 2 (+ 3 (+ 4 5))))",
+        "(* (+ (- 10 5) (* 2 3)) (/ (+ 8 2) (- 7 2)))",
+        "(+ (+ (+ (+ 1 2) 3) 4) 5)",
+        "(- (+ (* (/ 20 4) 3) (- 15 5)) (+ (+ 1 2) (+ 3 4)))"
+
+        "(setq x 10)",
+        "(setq y (+ 5 3))",
+        "(setq result (+ x y))",
+        "(setq nested (+ (setq a 5) (setq b 3)))"
+
+        "(let ((x 5)) x)",
+        "(let ((x 5)) (+ x 3))",
+        "(let ((x 1) (y 2)) (+ x y))",
+        "(let ((x 10)) (let ((x 20)) x))",
+        "(let ((x 5)) (+ x (let ((x 10)) x)))"
+
+        "(defun add (a b) (+ a b))",
+        "(defun square (x) (* x x))",
+        "(defun add-one (n) (+ n 1))",
+        "(defun double-add (a b) (* 2 (+ a b)))"
+
+        "(add 3 4)",
+        "(square 5)",
+        "(add (square 2) (add-one 3))",
+        "(double-add (add 1 2) (square 2))"
+
+        "(defun factorial (n) (if (<= n 1) 1 (* n (factorial (- n 1)))))",
+        "(defun fibonacci (n) (if (<= n 1) n (+ (fibonacci (- n 1)) (fibonacci (- n 2)))))",
+        "(factorial 5)",
+
+        "(if (> 5 3) 10 20)",
+        "(if (= x y) (+ x y) (* x y))",
+        "(if (< (+ 1 2) (* 2 3)) 'true 'false)",
+        "(if (and (> x 0) (< x 10)) 'valid 'invalid)"
+
+        "(cons 1 2)",
+        "(cons 1 (cons 2 nil))",
+        "(car (cons 1 2))",
+        "(cdr (cons 1 (cons 2 nil)))",
+        "(list 1 2 3 4)"
+
+        "(defcustom my-var 42 \"A custom variable\" :type 'integer)",
+        "(add-hook 'some-mode-hook (lambda () (message \"Hello\")))",
+        "(when (boundp 'some-var) (setq some-var 'new-value))",
+        "(use-package some-package :config (setq var 'value))",
+        "(defun my-func () (interactive) (message \"Called!\"))"

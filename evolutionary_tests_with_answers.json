@@ -1,0 +1,204 @@
+{
+  "tests": [
+    {
+      "expression": "(+ 1 2)",
+      "expected": "3"
+    },
+    {
+      "expression": "(- 5 3)",
+      "expected": "2"
+    },
+    {
+      "expression": "(* 2 4)",
+      "expected": "8"
+    },
+    {
+      "expression": "(/ 10 2)",
+      "expected": "5"
+    },
+    {
+      "expression": "(+ 0 0)",
+      "expected": "0"
+    },
+    {
+      "expression": "(+ 1 (- 5 3))",
+      "expected": "3"
+    },
+    {
+      "expression": "(* (+ 2 3) (- 10 5))",
+      "expected": "25"
+    },
+    {
+      "expression": "(/ (+ 6 4) (- 8 6))",
+      "expected": "5"
+    },
+    {
+      "expression": "(+ (+ 1 2) (+ 3 4))",
+      "expected": "10"
+    },
+    {
+      "expression": "(- (+ (+ 1 2) 3) (* 2 2))",
+      "expected": "2"
+    },
+    {
+      "expression": "(+ 1 (+ 2 (+ 3 (+ 4 5))))",
+      "expected": "15"
+    },
+    {
+      "expression": "(* (+ (- 10 5) (* 2 3)) (/ (+ 8 2) (- 7 2)))",
+      "expected": "22"
+    },
+    {
+      "expression": "(+ (+ (+ (+ 1 2) 3) 4) 5)",
+      "expected": "15"
+    },
+    {
+      "expression": "(- (+ (* (/ 20 4) 3) (- 15 5)) (+ (+ 1 2) (+ 3 4)))",
+      "expected": "15"
+    },
+    {
+      "expression": "(setq x 10)",
+      "expected": "10"
+    },
+    {
+      "expression": "(setq y (+ 5 3))",
+      "expected": "8"
+    },
+    {
+      "expression": "(setq result (+ x y))",
+      "expected": null,
+      "error": "Symbol\u2019s value as variable is void: x\n"
+    },
+    {
+      "expression": "(setq nested (+ (setq a 5) (setq b 3)))",
+      "expected": "8"
+    },
+    {
+      "expression": "(let ((x 5)) x)",
+      "expected": "5"
+    },
+    {
+      "expression": "(let ((x 5)) (+ x 3))",
+      "expected": "8"
+    },
+    {
+      "expression": "(let ((x 1) (y 2)) (+ x y))",
+      "expected": "3"
+    },
+    {
+      "expression": "(let ((x 10)) (let ((x 20)) x))",
+      "expected": "20"
+    },
+    {
+      "expression": "(let ((x 5)) (+ x (let ((x 10)) x)))",
+      "expected": "15"
+    },
+    {
+      "expression": "(defun add (a b) (+ a b))",
+      "expected": "add"
+    },
+    {
+      "expression": "(defun square (x) (* x x))",
+      "expected": "square"
+    },
+    {
+      "expression": "(defun add-one (n) (+ n 1))",
+      "expected": "add-one"
+    },
+    {
+      "expression": "(defun double-add (a b) (* 2 (+ a b)))",
+      "expected": "double-add"
+    },
+    {
+      "expression": "(add 3 4)",
+      "expected": null,
+      "error": "Symbol\u2019s function definition is void: add\n"
+    },
+    {
+      "expression": "(square 5)",
+      "expected": null,
+      "error": "Symbol\u2019s function definition is void: square\n"
+    },
+    {
+      "expression": "(add (square 2) (add-one 3))",
+      "expected": null,
+      "error": "Symbol\u2019s function definition is void: add\n"
+    },
+    {
+      "expression": "(double-add (add 1 2) (square 2))",
+      "expected": null,
+      "error": "Symbol\u2019s function definition is void: double-add\n"
+    },
+    {
+      "expression": "(defun factorial (n) (if (<= n 1) 1 (* n (factorial (- n 1)))))",
+      "expected": "factorial"
+    },
+    {
+      "expression": "(defun fibonacci (n) (if (<= n 1) n (+ (fibonacci (- n 1)) (fibonacci (- n 2)))))",
+      "expected": "fibonacci"
+    },
+    {
+      "expression": "(factorial 5)",
+      "expected": null,
+      "error": "Symbol\u2019s function definition is void: factorial\n"
+    },
+    {
+      "expression": "(if (> 5 3) 10 20)",
+      "expected": "10"
+    },
+    {
+      "expression": "(if (= x y) (+ x y) (* x y))",
+      "expected": null,
+      "error": "Symbol\u2019s value as variable is void: x\n"
+    },
+    {
+      "expression": "(if (< (+ 1 2) (* 2 3)) 'true 'false)",
+      "expected": "true"
+    },
+    {
+      "expression": "(if (and (> x 0) (< x 10)) 'valid 'invalid)",
+      "expected": null,
+      "error": "Symbol\u2019s value as variable is void: x\n"
+    },
+    {
+      "expression": "(cons 1 2)",
+      "expected": "(1 . 2)"
+    },
+    {
+      "expression": "(cons 1 (cons 2 nil))",
+      "expected": "(1 2)"
+    },
+    {
+      "expression": "(car (cons 1 2))",
+      "expected": "1"
+    },
+    {
+      "expression": "(cdr (cons 1 (cons 2 nil)))",
+      "expected": "(2)"
+    },
+    {
+      "expression": "(list 1 2 3 4)",
+      "expected": "(1 2 3 4)"
+    },
+    {
+      "expression": "(defcustom my-var 42 \"A custom variable\" :type 'integer)",
+      "expected": "my-var"
+    },
+    {
+      "expression": "(add-hook 'some-mode-hook (lambda () (message \"Hello\")))",
+      "expected": "(#[nil ((message Hello)) (t)])"
+    },
+    {
+      "expression": "(when (boundp 'some-var) (setq some-var 'new-value))",
+      "expected": "nil"
+    },
+    {
+      "expression": "(use-package some-package :config (setq var 'value))",
+      "expected": "Error (use-package): Cannot load some-package"
+    },
+    {
+      "expression": "(defun my-func () (interactive) (message \"Called!\"))",
+      "expected": "my-func"
+    }
+  ]
+}
