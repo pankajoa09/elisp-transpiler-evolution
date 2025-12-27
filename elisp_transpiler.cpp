@@ -8,6 +8,7 @@
 #include <stdexcept>
 #include <algorithm>
 #include <cstring>
+#include <cmath>
 
 // AST Node Types
 enum class NodeType {
@@ -128,9 +129,26 @@ public:
             return ASTNode::makeString(str);
         } else if (std::isdigit(current_token[0]) ||
                    (current_token[0] == '-' && current_token.size() > 1 && std::isdigit(current_token[1]))) {
-            int val = std::stoi(current_token);
-            advance();
-            return ASTNode::makeInt(val);
+            // Check if it's a valid integer (all digits, or - followed by digits)
+            bool is_number = true;
+            size_t start_idx = (current_token[0] == '-') ? 1 : 0;
+            for (size_t i = start_idx; i < current_token.size(); i++) {
+                if (!std::isdigit(current_token[i])) {
+                    is_number = false;
+                    break;
+                }
+            }
+
+            if (is_number) {
+                int val = std::stoi(current_token);
+                advance();
+                return ASTNode::makeInt(val);
+            } else {
+                // Not a pure number, treat as symbol (e.g., "1+", "1-")
+                std::string sym = current_token;
+                advance();
+                return ASTNode::makeSymbol(sym);
+            }
         } else {
             std::string sym = current_token;
             advance();
@@ -225,6 +243,91 @@ class CodeGenerator {
                                     generateExpr(node->children[i]) + ")";
                         }
                         return result;
+                    }
+                }
+
+                // Math functions
+                if (op_name == "abs") {
+                    if (node->children.size() == 2) {
+                        return "abs(" + generateExpr(node->children[1]) + ")";
+                    }
+                }
+
+                if (op_name == "min") {
+                    if (node->children.size() == 3) {
+                        return "std::min(" + generateExpr(node->children[1]) + ", " +
+                               generateExpr(node->children[2]) + ")";
+                    } else if (node->children.size() > 3) {
+                        std::string result = "std::min(" + generateExpr(node->children[1]) + ", " +
+                                           generateExpr(node->children[2]) + ")";
+                        for (size_t i = 3; i < node->children.size(); i++) {
+                            result = "std::min(" + result + ", " + generateExpr(node->children[i]) + ")";
+                        }
+                        return result;
+                    }
+                }
+
+                if (op_name == "max") {
+                    if (node->children.size() == 3) {
+                        return "std::max(" + generateExpr(node->children[1]) + ", " +
+                               generateExpr(node->children[2]) + ")";
+                    } else if (node->children.size() > 3) {
+                        std::string result = "std::max(" + generateExpr(node->children[1]) + ", " +
+                                           generateExpr(node->children[2]) + ")";
+                        for (size_t i = 3; i < node->children.size(); i++) {
+                            result = "std::max(" + result + ", " + generateExpr(node->children[i]) + ")";
+                        }
+                        return result;
+                    }
+                }
+
+                if (op_name == "mod" || op_name == "rem" || op_name == "%") {
+                    if (node->children.size() == 3) {
+                        return "(" + generateExpr(node->children[1]) + " % " +
+                               generateExpr(node->children[2]) + ")";
+                    }
+                }
+
+                if (op_name == "expt") {
+                    if (node->children.size() == 3) {
+                        return "((int)pow(" + generateExpr(node->children[1]) + ", " +
+                               generateExpr(node->children[2]) + "))";
+                    }
+                }
+
+                if (op_name == "sqrt") {
+                    if (node->children.size() == 2) {
+                        return "((int)sqrt(" + generateExpr(node->children[1]) + "))";
+                    }
+                }
+
+                if (op_name == "floor") {
+                    if (node->children.size() == 2) {
+                        return "((int)floor(" + generateExpr(node->children[1]) + "))";
+                    }
+                }
+
+                if (op_name == "ceiling") {
+                    if (node->children.size() == 2) {
+                        return "((int)ceil(" + generateExpr(node->children[1]) + "))";
+                    }
+                }
+
+                if (op_name == "round") {
+                    if (node->children.size() == 2) {
+                        return "((int)round(" + generateExpr(node->children[1]) + "))";
+                    }
+                }
+
+                if (op_name == "1+" || op_name == "add1") {
+                    if (node->children.size() == 2) {
+                        return "(" + generateExpr(node->children[1]) + " + 1)";
+                    }
+                }
+
+                if (op_name == "1-" || op_name == "sub1") {
+                    if (node->children.size() == 2) {
+                        return "(" + generateExpr(node->children[1]) + " - 1)";
                     }
                 }
 
@@ -344,6 +447,88 @@ class CodeGenerator {
                     }
                 }
 
+                // member - check if element is in list
+                if (op_name == "member" || op_name == "memq") {
+                    if (node->children.size() == 3) {
+                        std::string elem = generateExpr(node->children[1]);
+                        std::string list = generateExpr(node->children[2]);
+                        std::string temp = getTempVar();
+                        code << "    auto " << temp << " = " << list << ";\n";
+                        code << "    auto it_" << temp << " = std::find(" << temp << ".begin(), "
+                             << temp << ".end(), " << elem << ");\n";
+                        return "(it_" + temp + " != " + temp + ".end() ? 1 : 0)";
+                    }
+                }
+
+                // remove - remove element from list
+                if (op_name == "remove" || op_name == "delete") {
+                    if (node->children.size() == 3) {
+                        std::string elem = generateExpr(node->children[1]);
+                        std::string list = generateExpr(node->children[2]);
+                        std::string temp = getTempVar();
+                        code << "    auto " << temp << " = " << list << ";\n";
+                        code << "    " << temp << ".erase(std::remove(" << temp << ".begin(), "
+                             << temp << ".end(), " << elem << "), " << temp << ".end());\n";
+                        return temp;
+                    }
+                }
+
+                // push - add element to front of list (modifies list)
+                if (op_name == "push") {
+                    if (node->children.size() == 3) {
+                        std::string elem = generateExpr(node->children[1]);
+                        std::string list_var = node->children[2]->str_value;
+                        std::string sanitized_list = sanitizeIdentifier(list_var);
+                        code << "    " << sanitized_list << ".insert(" << sanitized_list
+                             << ".begin(), " << elem << ");\n";
+                        return elem;
+                    }
+                }
+
+                // pop - remove and return first element (modifies list)
+                if (op_name == "pop") {
+                    if (node->children.size() == 2) {
+                        std::string list_var = node->children[1]->str_value;
+                        std::string sanitized_list = sanitizeIdentifier(list_var);
+                        std::string temp = getTempVar();
+                        code << "    auto " << temp << " = " << sanitized_list << "[0];\n";
+                        code << "    " << sanitized_list << ".erase(" << sanitized_list << ".begin());\n";
+                        return temp;
+                    }
+                }
+
+                // nthcdr - get list starting from nth element
+                if (op_name == "nthcdr") {
+                    if (node->children.size() == 3) {
+                        std::string n = generateExpr(node->children[1]);
+                        std::string list = generateExpr(node->children[2]);
+                        std::string temp = getTempVar();
+                        code << "    auto " << temp << " = " << list << ";\n";
+                        code << "    std::vector<int> " << temp << "_result(" << temp << ".begin() + "
+                             << n << ", " << temp << ".end());\n";
+                        return temp + "_result";
+                    }
+                }
+
+                // butlast - return list without last element
+                if (op_name == "butlast") {
+                    if (node->children.size() == 2) {
+                        std::string list = generateExpr(node->children[1]);
+                        std::string temp = getTempVar();
+                        code << "    auto " << temp << " = " << list << ";\n";
+                        code << "    if (" << temp << ".size() > 0) " << temp << ".pop_back();\n";
+                        return temp;
+                    }
+                }
+
+                // last - get last element
+                if (op_name == "last") {
+                    if (node->children.size() == 2) {
+                        std::string list = generateExpr(node->children[1]);
+                        return "(" + list + ".back())";
+                    }
+                }
+
                 // not - logical negation
                 if (op_name == "not" || op_name == "null") {
                     if (node->children.size() == 2) {
@@ -354,6 +539,80 @@ class CodeGenerator {
                 // boundp - always return false for simplicity
                 if (op_name == "boundp") {
                     return "false";
+                }
+
+                // Type predicates
+                if (op_name == "numberp" || op_name == "integerp") {
+                    // In our simplified model, we'll use a heuristic
+                    // For now, always return true for simplicity
+                    return "true";
+                }
+
+                if (op_name == "stringp") {
+                    // For now, return false (most things are ints in our system)
+                    return "false";
+                }
+
+                if (op_name == "symbolp") {
+                    return "false";
+                }
+
+                if (op_name == "listp") {
+                    // Check if it's a vector/list type
+                    return "false";  // Simplified for now
+                }
+
+                if (op_name == "atom") {
+                    // Opposite of cons cell - in our model, most things are atoms
+                    return "true";
+                }
+
+                // Equality predicates
+                if (op_name == "eq" || op_name == "eql") {
+                    if (node->children.size() == 3) {
+                        return "(" + generateExpr(node->children[1]) + " == " +
+                               generateExpr(node->children[2]) + ")";
+                    }
+                }
+
+                if (op_name == "equal") {
+                    if (node->children.size() == 3) {
+                        return "(" + generateExpr(node->children[1]) + " == " +
+                               generateExpr(node->children[2]) + ")";
+                    }
+                }
+
+                // zerop - test if zero
+                if (op_name == "zerop") {
+                    if (node->children.size() == 2) {
+                        return "(" + generateExpr(node->children[1]) + " == 0)";
+                    }
+                }
+
+                // plusp/minusp - positive/negative tests
+                if (op_name == "plusp") {
+                    if (node->children.size() == 2) {
+                        return "(" + generateExpr(node->children[1]) + " > 0)";
+                    }
+                }
+
+                if (op_name == "minusp") {
+                    if (node->children.size() == 2) {
+                        return "(" + generateExpr(node->children[1]) + " < 0)";
+                    }
+                }
+
+                // evenp/oddp
+                if (op_name == "evenp") {
+                    if (node->children.size() == 2) {
+                        return "((" + generateExpr(node->children[1]) + " % 2) == 0)";
+                    }
+                }
+
+                if (op_name == "oddp") {
+                    if (node->children.size() == 2) {
+                        return "((" + generateExpr(node->children[1]) + " % 2) != 0)";
+                    }
                 }
 
                 // message - just return the first string argument
@@ -446,8 +705,8 @@ class CodeGenerator {
                     }
                 }
 
-                // let - as an expression (for nested let)
-                if (op_name == "let") {
+                // let/let* - as an expression (for nested let)
+                if (op_name == "let" || op_name == "let*") {
                     if (node->children.size() >= 3) {
                         // Generate an inline lambda that executes the let bindings
                         std::ostringstream lambda;
@@ -519,8 +778,8 @@ class CodeGenerator {
             return;
         }
 
-        // let - local bindings
-        if (op_name == "let") {
+        // let/let* - local bindings
+        if (op_name == "let" || op_name == "let*") {
             if (node->children.size() < 3) return;
 
             auto bindings = node->children[1];
@@ -669,6 +928,65 @@ class CodeGenerator {
                         code << "        std::cout << " << generateExpr(clause->children[j]) << " << std::endl;\n";
                     } else if (is_last_in_clause) {
                         code << "        " << generateExpr(clause->children[j]) << ";\n";
+                    } else {
+                        code << "        " << generateExpr(clause->children[j]) << ";\n";
+                    }
+                }
+
+                code << "    }";
+            }
+            code << "\n";
+            return;
+        }
+
+        // case - pattern matching (like switch)
+        if (op_name == "case") {
+            if (node->children.size() < 3) return;
+
+            std::string test_expr = generateExpr(node->children[1]);
+            std::string temp = getTempVar();
+            code << "    auto " << temp << " = " << test_expr << ";\n";
+
+            bool first = true;
+            for (size_t i = 2; i < node->children.size(); i++) {
+                auto clause = node->children[i];
+                if (clause->type != NodeType::List || clause->children.empty()) continue;
+
+                if (first) {
+                    code << "    ";
+                    first = false;
+                } else {
+                    code << " else ";
+                }
+
+                // Check for 'otherwise' or 't' (default case)
+                if (clause->children[0]->type == NodeType::Symbol &&
+                    (clause->children[0]->str_value == "otherwise" ||
+                     clause->children[0]->str_value == "t")) {
+                    code << "{\n";
+                } else {
+                    // Handle single value or list of values
+                    std::string condition;
+                    if (clause->children[0]->type == NodeType::List) {
+                        // Multiple values: (case x ((1 2 3) result))
+                        condition = "(";
+                        for (size_t j = 0; j < clause->children[0]->children.size(); j++) {
+                            if (j > 0) condition += " || ";
+                            condition += temp + " == " + generateExpr(clause->children[0]->children[j]);
+                        }
+                        condition += ")";
+                    } else {
+                        // Single value: (case x (1 result))
+                        condition = "(" + temp + " == " + generateExpr(clause->children[0]) + ")";
+                    }
+                    code << "if " << condition << " {\n";
+                }
+
+                // Execute clause body
+                for (size_t j = 1; j < clause->children.size(); j++) {
+                    bool is_last_in_clause = (j == clause->children.size() - 1);
+                    if (is_last_in_clause && is_last) {
+                        code << "        std::cout << " << generateExpr(clause->children[j]) << " << std::endl;\n";
                     } else {
                         code << "        " << generateExpr(clause->children[j]) << ";\n";
                     }

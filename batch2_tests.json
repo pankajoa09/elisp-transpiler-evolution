@@ -1,0 +1,124 @@
+{
+  "tests": [
+    {
+      "name": "abs-positive",
+      "description": "Absolute value of positive number",
+      "expression": "(abs 42)",
+      "expected": "42"
+    },
+    {
+      "name": "abs-negative",
+      "description": "Absolute value of negative number",
+      "expression": "(abs (- 0 42))",
+      "expected": "42"
+    },
+    {
+      "name": "min-two",
+      "description": "Minimum of two numbers",
+      "expression": "(min 10 20)",
+      "expected": "10"
+    },
+    {
+      "name": "max-three",
+      "description": "Maximum of three numbers",
+      "expression": "(max 5 15 10)",
+      "expected": "15"
+    },
+    {
+      "name": "mod-remainder",
+      "description": "Modulo operation",
+      "expression": "(mod 17 5)",
+      "expected": "2"
+    },
+    {
+      "name": "expt-power",
+      "description": "Power function 2^3",
+      "expression": "(expt 2 3)",
+      "expected": "8"
+    },
+    {
+      "name": "1plus",
+      "description": "Increment by 1",
+      "expression": "(1+ 5)",
+      "expected": "6"
+    },
+    {
+      "name": "1minus",
+      "description": "Decrement by 1",
+      "expression": "(1- 10)",
+      "expected": "9"
+    },
+    {
+      "name": "eq-equal",
+      "description": "Equality test - equal",
+      "expression": "(eq 5 5)",
+      "expected": "1"
+    },
+    {
+      "name": "eq-not-equal",
+      "description": "Equality test - not equal",
+      "expression": "(eq 5 7)",
+      "expected": "0"
+    },
+    {
+      "name": "zerop-zero",
+      "description": "Test if zero - true",
+      "expression": "(zerop 0)",
+      "expected": "1"
+    },
+    {
+      "name": "zerop-nonzero",
+      "description": "Test if zero - false",
+      "expression": "(zerop 5)",
+      "expected": "0"
+    },
+    {
+      "name": "plusp-positive",
+      "description": "Test if positive",
+      "expression": "(plusp 10)",
+      "expected": "1"
+    },
+    {
+      "name": "minusp-negative",
+      "description": "Test if negative",
+      "expression": "(minusp (- 0 5))",
+      "expected": "1"
+    },
+    {
+      "name": "evenp-even",
+      "description": "Test if even - true",
+      "expression": "(evenp 10)",
+      "expected": "1"
+    },
+    {
+      "name": "oddp-odd",
+      "description": "Test if odd - true",
+      "expression": "(oddp 7)",
+      "expected": "1"
+    },
+    {
+      "name": "let-star",
+      "description": "let* sequential bindings",
+      "expression": "(let* ((x 5) (y (+ x 3))) y)",
+      "expected": "8"
+    },
+    {
+      "name": "case-match-first",
+      "description": "Case statement matching first",
+      "expression": "(case 1 (1 100) (2 200) (otherwise 999))",
+      "expected": "100"
+    },
+    {
+      "name": "case-match-second",
+      "description": "Case statement matching second",
+      "expression": "(case 2 (1 100) (2 200) (otherwise 999))",
+      "expected": "200"
+    },
+    {
+      "name": "case-default",
+      "description": "Case statement default",
+      "expression": "(case 5 (1 100) (2 200) (otherwise 999))",
+      "expected": "999"
+    }
+  ]
+}
