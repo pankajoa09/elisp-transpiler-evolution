@@ -318,6 +318,17 @@ class CodeGenerator {
                     return "\"\"";
                 }
 
+                // if - as an expression (ternary operator)
+                if (op_name == "if") {
+                    if (node->children.size() >= 3) {
+                        std::string condition = generateExpr(node->children[1]);
+                        std::string then_expr = generateExpr(node->children[2]);
+                        std::string else_expr = node->children.size() > 3 ?
+                                               generateExpr(node->children[3]) : "0";
+                        return "(" + condition + " ? " + then_expr + " : " + else_expr + ")";
+                    }
+                }
+
                 // setq - as an expression (returns the assigned value)
                 if (op_name == "setq") {
                     if (node->children.size() == 3) {
@@ -383,8 +394,8 @@ class CodeGenerator {
             // Declare all variables that haven't been declared yet
             for (const std::string& var : all_setq_vars) {
                 if (!variables.count(var)) {
-                    variables[var] = "int";
-                    code << "    int " << sanitizeIdentifier(var) << ";\n";
+                    variables[var] = "auto";
+                    code << "    auto " << sanitizeIdentifier(var) << " = 0;\n";
                 }
             }
 
@@ -533,8 +544,8 @@ class CodeGenerator {
             // Declare all variables that haven't been declared yet
             for (const std::string& var : all_setq_vars) {
                 if (!variables.count(var)) {
-                    variables[var] = "int";
-                    code << "    int " << sanitizeIdentifier(var) << ";\n";
+                    variables[var] = "auto";
+                    code << "    auto " << sanitizeIdentifier(var) << " = 0;\n";
                 }
             }
 

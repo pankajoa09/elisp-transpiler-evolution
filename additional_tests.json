@@ -1,0 +1,79 @@
+{
+  "tests": [
+    {
+      "name": "Multiple arithmetic operators",
+      "expression": "(+ 1 2 3 4 5)",
+      "expected": "15"
+    },
+    {
+      "name": "Subtraction with multiple args",
+      "expression": "(- 10 2 3)",
+      "expected": "5"
+    },
+    {
+      "name": "Boolean comparisons",
+      "expression": "(< 1 2)",
+      "expected": "1"
+    },
+    {
+      "name": "Boolean false",
+      "expression": "(> 1 2)",
+      "expected": "0"
+    },
+    {
+      "name": "Equality test",
+      "expression": "(= 5 5)",
+      "expected": "1"
+    },
+    {
+      "name": "Greater than or equal",
+      "expression": "(>= 5 5)",
+      "expected": "1"
+    },
+    {
+      "name": "Let with arithmetic",
+      "expression": "(let ((a 10) (b 20)) (* a b))",
+      "expected": "200"
+    },
+    {
+      "name": "If with arithmetic condition",
+      "expression": "(if (< 2 3) (+ 10 5) (* 2 2))",
+      "expected": "15"
+    },
+    {
+      "name": "Nested if",
+      "expression": "(if (> 5 3) (if (< 2 4) 100 200) 300)",
+      "expected": "100"
+    },
+    {
+      "name": "Complex nested arithmetic",
+      "expression": "(+ (* 2 3) (/ 8 2) (- 10 3))",
+      "expected": "17"
+    },
+    {
+      "name": "Defun with multiple params",
+      "expression": "(defun sum-three (a b c) (+ a b c))",
+      "expected": "sum-three"
+    },
+    {
+      "name": "Defun with complex body",
+      "expression": "(defun calculate (x) (* (+ x 5) 2))",
+      "expected": "calculate"
+    },
+    {
+      "name": "Let with multiple expressions",
+      "expression": "(let ((x 5)) (+ x 1) (+ x 2) (+ x 3))",
+      "expected": "8"
+    },
+    {
+      "name": "Setq with expression",
+      "expression": "(setq result (* 6 7))",
+      "expected": "42"
+    },
+    {
+      "name": "Complex let and arithmetic",
+      "expression": "(let ((x 3) (y 4)) (+ (* x x) (* y y)))",
+      "expected": "25"
+    }
+  ]
+}

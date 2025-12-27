@@ -4,10 +4,7 @@
 #include <string>
 
 int main() {
-    int nested;
-    int a;
-    int b;
-    nested = ((a = 5) + (b = 3));
-    std::cout << nested << std::endl;
+    auto temp_0 = ((5 > 3)) ? 0 : 300;
+    std::cout << temp_0 << std::endl;
     return 0;
 }
