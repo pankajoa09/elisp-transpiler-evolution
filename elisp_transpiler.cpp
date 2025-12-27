@@ -566,6 +566,82 @@ class CodeGenerator {
                     }
                 }
 
+                // Vector operations
+                if (op_name == "vector") {
+                    // Same as list for now
+                    std::string vec_code = "std::vector<int>{";
+                    for (size_t i = 1; i < node->children.size(); i++) {
+                        if (i > 1) vec_code += ", ";
+                        vec_code += generateExpr(node->children[i]);
+                    }
+                    vec_code += "}";
+                    return vec_code;
+                }
+
+                if (op_name == "make-vector") {
+                    if (node->children.size() >= 2) {
+                        std::string size = generateExpr(node->children[1]);
+                        std::string init = (node->children.size() >= 3) ?
+                                          generateExpr(node->children[2]) : "0";
+                        return "std::vector<int>(" + size + ", " + init + ")";
+                    }
+                }
+
+                if (op_name == "aref" || op_name == "elt") {
+                    if (node->children.size() == 3) {
+                        std::string arr = generateExpr(node->children[1]);
+                        std::string idx = generateExpr(node->children[2]);
+                        return "(" + arr + ")[" + idx + "]";
+                    }
+                }
+
+                if (op_name == "aset") {
+                    if (node->children.size() == 4) {
+                        std::string arr = node->children[1]->str_value;
+                        std::string sanitized_arr = sanitizeIdentifier(arr);
+                        std::string idx = generateExpr(node->children[2]);
+                        std::string val = generateExpr(node->children[3]);
+                        code << "    " << sanitized_arr << "[" << idx << "] = " << val << ";\n";
+                        return val;
+                    }
+                }
+
+                // Sequence functions
+                if (op_name == "sort") {
+                    if (node->children.size() >= 2) {
+                        std::string seq = generateExpr(node->children[1]);
+                        std::string temp = getTempVar();
+                        code << "    auto " << temp << " = " << seq << ";\n";
+                        code << "    std::sort(" << temp << ".begin(), " << temp << ".end());\n";
+                        return temp;
+                    }
+                }
+
+                if (op_name == "find") {
+                    if (node->children.size() == 3) {
+                        std::string item = generateExpr(node->children[1]);
+                        std::string seq = generateExpr(node->children[2]);
+                        std::string temp = getTempVar();
+                        code << "    auto " << temp << " = " << seq << ";\n";
+                        code << "    auto it_" << temp << " = std::find(" << temp << ".begin(), "
+                             << temp << ".end(), " << item << ");\n";
+                        return "(it_" + temp + " != " + temp + ".end() ? *it_" + temp + " : 0)";
+                    }
+                }
+
+                if (op_name == "position") {
+                    if (node->children.size() == 3) {
+                        std::string item = generateExpr(node->children[1]);
+                        std::string seq = generateExpr(node->children[2]);
+                        std::string temp = getTempVar();
+                        code << "    auto " << temp << " = " << seq << ";\n";
+                        code << "    auto it_" << temp << " = std::find(" << temp << ".begin(), "
+                             << temp << ".end(), " << item << ");\n";
+                        return "(it_" + temp + " != " + temp + ".end() ? "
+                               "(int)(it_" + temp + " - " + temp + ".begin()) : -1)";
+                    }
+                }
+
                 // not - logical negation
                 if (op_name == "not" || op_name == "null") {
                     if (node->children.size() == 2) {
@@ -746,6 +822,33 @@ class CodeGenerator {
                     if (node->children.size() == 2) {
                         return "((int)std::string(" + generateExpr(node->children[1]) + ").length())";
                     }
+                }
+
+                // print, prin1, princ - output functions
+                if (op_name == "print" || op_name == "prin1") {
+                    if (node->children.size() == 2) {
+                        std::string val = generateExpr(node->children[1]);
+                        std::string temp = getTempVar();
+                        code << "    auto " << temp << " = " << val << ";\n";
+                        code << "    std::cout << " << temp << " << std::endl;\n";
+                        return temp;
+                    }
+                }
+
+                if (op_name == "princ") {
+                    if (node->children.size() == 2) {
+                        std::string val = generateExpr(node->children[1]);
+                        std::string temp = getTempVar();
+                        code << "    auto " << temp << " = " << val << ";\n";
+                        code << "    std::cout << " << temp << ";\n";
+                        return temp;
+                    }
+                }
+
+                // terpri - print newline
+                if (op_name == "terpri") {
+                    code << "    std::cout << std::endl;\n";
+                    return "0";
                 }
 
                 // if - as an expression (ternary operator)
