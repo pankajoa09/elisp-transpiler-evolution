@@ -305,6 +305,13 @@ class CodeGenerator {
                     return list_code;
                 }
 
+                // not - logical negation
+                if (op_name == "not" || op_name == "null") {
+                    if (node->children.size() == 2) {
+                        return "(!" + generateExpr(node->children[1]) + ")";
+                    }
+                }
+
                 // boundp - always return false for simplicity
                 if (op_name == "boundp") {
                     return "false";
@@ -573,6 +580,48 @@ class CodeGenerator {
                     code << "        " << generateExpr(node->children[i]) << ";\n";
                 }
                 code << "    }\n";
+            }
+            return;
+        }
+
+        // progn - execute multiple expressions, return last
+        if (op_name == "progn") {
+            if (node->children.size() < 2) return;
+
+            for (size_t i = 1; i < node->children.size(); i++) {
+                bool is_last_expr = (i == node->children.size() - 1);
+                if (is_last_expr && is_last) {
+                    std::string result = generateExpr(node->children[i]);
+                    code << "    std::cout << " << result << " << std::endl;\n";
+                } else if (is_last_expr) {
+                    // Just evaluate, don't print
+                    std::string expr = generateExpr(node->children[i]);
+                    code << "    " << expr << ";\n";
+                } else {
+                    // Execute for side effects
+                    std::string expr = generateExpr(node->children[i]);
+                    code << "    " << expr << ";\n";
+                }
+            }
+            return;
+        }
+
+        // while - loop
+        if (op_name == "while") {
+            if (node->children.size() < 2) return;
+
+            std::string condition = generateExpr(node->children[1]);
+            code << "    while (" << condition << ") {\n";
+
+            for (size_t i = 2; i < node->children.size(); i++) {
+                std::string expr = generateExpr(node->children[i]);
+                code << "        " << expr << ";\n";
+            }
+
+            code << "    }\n";
+
+            if (is_last) {
+                code << "    std::cout << \"nil\" << std::endl;\n";
             }
             return;
         }
