@@ -1,0 +1,64 @@
+{
+  "tests": [
+    {
+      "name": "dotimes-result",
+      "description": "Dotimes returns result form",
+      "expression": "(dotimes (i 5 42))",
+      "expected": "42"
+    },
+    {
+      "name": "incf-basic",
+      "description": "Increment variable by 1",
+      "expression": "(let ((x 10)) (incf x) x)",
+      "expected": "11"
+    },
+    {
+      "name": "incf-delta",
+      "description": "Increment variable by 5",
+      "expression": "(let ((x 10)) (incf x 5) x)",
+      "expected": "15"
+    },
+    {
+      "name": "decf-basic",
+      "description": "Decrement variable by 1",
+      "expression": "(let ((x 10)) (decf x) x)",
+      "expected": "9"
+    },
+    {
+      "name": "decf-delta",
+      "description": "Decrement variable by 3",
+      "expression": "(let ((x 10)) (decf x 3) x)",
+      "expected": "7"
+    },
+    {
+      "name": "setf-basic",
+      "description": "Set variable with setf",
+      "expression": "(let ((x 0)) (setf x 42) x)",
+      "expected": "42"
+    },
+    {
+      "name": "string-equal-true",
+      "description": "String equality - true",
+      "expression": "(string= \"hello\" \"hello\")",
+      "expected": "1"
+    },
+    {
+      "name": "string-equal-false",
+      "description": "String equality - false",
+      "expression": "(string= \"hello\" \"world\")",
+      "expected": "0"
+    },
+    {
+      "name": "string-less",
+      "description": "String less than",
+      "expression": "(string< \"apple\" \"banana\")",
+      "expected": "1"
+    },
+    {
+      "name": "string-length",
+      "description": "Get string length",
+      "expression": "(string-length \"hello\")",
+      "expected": "5"
+    }
+  ]
+}

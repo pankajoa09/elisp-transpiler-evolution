@@ -652,6 +652,53 @@ class CodeGenerator {
                     return "\"\"";
                 }
 
+                // string= - string equality
+                if (op_name == "string=" || op_name == "string-equal") {
+                    if (node->children.size() == 3) {
+                        return "(std::string(" + generateExpr(node->children[1]) + ") == std::string(" +
+                               generateExpr(node->children[2]) + ") ? 1 : 0)";
+                    }
+                }
+
+                // string< - string less than
+                if (op_name == "string<" || op_name == "string-lessp") {
+                    if (node->children.size() == 3) {
+                        return "(std::string(" + generateExpr(node->children[1]) + ") < std::string(" +
+                               generateExpr(node->children[2]) + ") ? 1 : 0)";
+                    }
+                }
+
+                // upcase - convert to uppercase
+                if (op_name == "upcase") {
+                    if (node->children.size() == 2) {
+                        std::string str = generateExpr(node->children[1]);
+                        std::string temp = getTempVar();
+                        code << "    auto " << temp << " = std::string(" << str << ");\n";
+                        code << "    std::transform(" << temp << ".begin(), " << temp << ".end(), "
+                             << temp << ".begin(), ::toupper);\n";
+                        return temp;
+                    }
+                }
+
+                // downcase - convert to lowercase
+                if (op_name == "downcase") {
+                    if (node->children.size() == 2) {
+                        std::string str = generateExpr(node->children[1]);
+                        std::string temp = getTempVar();
+                        code << "    auto " << temp << " = std::string(" << str << ");\n";
+                        code << "    std::transform(" << temp << ".begin(), " << temp << ".end(), "
+                             << temp << ".begin(), ::tolower);\n";
+                        return temp;
+                    }
+                }
+
+                // string-length - get string length
+                if (op_name == "string-length") {
+                    if (node->children.size() == 2) {
+                        return "((int)std::string(" + generateExpr(node->children[1]) + ").length())";
+                    }
+                }
+
                 // if - as an expression (ternary operator)
                 if (op_name == "if") {
                     if (node->children.size() >= 3) {
@@ -702,6 +749,48 @@ class CodeGenerator {
 
                         // Assignment expression returns the value
                         return "(" + sanitized_var_name + " = " + value + ")";
+                    }
+                }
+
+                // setf - generalized assignment (like setq for now)
+                if (op_name == "setf") {
+                    if (node->children.size() == 3) {
+                        std::string var_name = node->children[1]->str_value;
+                        std::string sanitized_var_name = sanitizeIdentifier(var_name);
+                        std::string value = generateExpr(node->children[2]);
+                        return "(" + sanitized_var_name + " = " + value + ")";
+                    }
+                }
+
+                // incf - increment in place
+                if (op_name == "incf") {
+                    if (node->children.size() >= 2) {
+                        std::string var_name = node->children[1]->str_value;
+                        std::string sanitized_var_name = sanitizeIdentifier(var_name);
+                        if (node->children.size() >= 3) {
+                            // incf with delta: (incf x 5)
+                            std::string delta = generateExpr(node->children[2]);
+                            return "(" + sanitized_var_name + " += " + delta + ")";
+                        } else {
+                            // incf by 1: (incf x)
+                            return "(++" + sanitized_var_name + ")";
+                        }
+                    }
+                }
+
+                // decf - decrement in place
+                if (op_name == "decf") {
+                    if (node->children.size() >= 2) {
+                        std::string var_name = node->children[1]->str_value;
+                        std::string sanitized_var_name = sanitizeIdentifier(var_name);
+                        if (node->children.size() >= 3) {
+                            // decf with delta: (decf x 5)
+                            std::string delta = generateExpr(node->children[2]);
+                            return "(" + sanitized_var_name + " -= " + delta + ")";
+                        } else {
+                            // decf by 1: (decf x)
+                            return "(--" + sanitized_var_name + ")";
+                        }
                     }
                 }
 
@@ -1127,6 +1216,39 @@ class CodeGenerator {
 
                 if (is_last) {
                     code << "    std::cout << \"nil\" << std::endl;\n";
+                }
+            }
+            return;
+        }
+
+        // dotimes - iterate N times
+        if (op_name == "dotimes") {
+            if (node->children.size() < 2) return;
+
+            auto spec = node->children[1];
+            if (spec->type == NodeType::List && spec->children.size() >= 2) {
+                std::string var = spec->children[0]->str_value;
+                std::string sanitized_var = sanitizeIdentifier(var);
+                std::string count_expr = generateExpr(spec->children[1]);
+
+                // Optional result form
+                std::string result_expr = "0";
+                if (spec->children.size() >= 3) {
+                    result_expr = generateExpr(spec->children[2]);
+                }
+
+                code << "    for (int " << sanitized_var << " = 0; " << sanitized_var
+                     << " < " << count_expr << "; " << sanitized_var << "++) {\n";
+
+                for (size_t i = 2; i < node->children.size(); i++) {
+                    std::string expr = generateExpr(node->children[i]);
+                    code << "        " << expr << ";\n";
+                }
+
+                code << "    }\n";
+
+                if (is_last) {
+                    code << "    std::cout << " << result_expr << " << std::endl;\n";
                 }
             }
             return;
