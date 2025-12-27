@@ -642,6 +642,74 @@ class CodeGenerator {
                     }
                 }
 
+                // count - count occurrences
+                if (op_name == "count") {
+                    if (node->children.size() == 3) {
+                        std::string item = generateExpr(node->children[1]);
+                        std::string seq = generateExpr(node->children[2]);
+                        std::string temp = getTempVar();
+                        code << "    auto " << temp << " = " << seq << ";\n";
+                        return "(int)std::count(" + temp + ".begin(), " + temp + ".end(), " + item + ")";
+                    }
+                }
+
+                // make-list - create list with repeated element
+                if (op_name == "make-list") {
+                    if (node->children.size() >= 2) {
+                        std::string size = generateExpr(node->children[1]);
+                        std::string init = (node->children.size() >= 3) ?
+                                          generateExpr(node->children[2]) : "0";
+                        return "std::vector<int>(" + size + ", " + init + ")";
+                    }
+                }
+
+                // copy-list - copy a list
+                if (op_name == "copy-list" || op_name == "copy-sequence") {
+                    if (node->children.size() == 2) {
+                        return generateExpr(node->children[1]); // Vectors copy by value anyway
+                    }
+                }
+
+                // nreverse - destructive reverse
+                if (op_name == "nreverse") {
+                    if (node->children.size() == 2) {
+                        std::string list_var = node->children[1]->str_value;
+                        std::string sanitized = sanitizeIdentifier(list_var);
+                        code << "    std::reverse(" << sanitized << ".begin(), " << sanitized << ".end());\n";
+                        return sanitized;
+                    }
+                }
+
+                // fill - fill sequence with value
+                if (op_name == "fill") {
+                    if (node->children.size() == 3) {
+                        std::string seq_var = node->children[1]->str_value;
+                        std::string sanitized = sanitizeIdentifier(seq_var);
+                        std::string val = generateExpr(node->children[2]);
+                        code << "    std::fill(" << sanitized << ".begin(), " << sanitized << ".end(), " << val << ");\n";
+                        return sanitized;
+                    }
+                }
+
+                // subseq - subsequence
+                if (op_name == "subseq") {
+                    if (node->children.size() >= 3) {
+                        std::string seq = generateExpr(node->children[1]);
+                        std::string start = generateExpr(node->children[2]);
+                        std::string temp = getTempVar();
+                        code << "    auto " << temp << "_full = " << seq << ";\n";
+                        if (node->children.size() >= 4) {
+                            std::string end = generateExpr(node->children[3]);
+                            code << "    std::vector<int> " << temp << "(" << temp << "_full.begin() + "
+                                 << start << ", " << temp << "_full.begin() + " << end << ");\n";
+                        } else {
+                            code << "    std::vector<int> " << temp << "(" << temp << "_full.begin() + "
+                                 << start << ", " << temp << "_full.end());\n";
+                        }
+                        return temp;
+                    }
+                }
+
                 // not - logical negation
                 if (op_name == "not" || op_name == "null") {
                     if (node->children.size() == 2) {
@@ -849,6 +917,32 @@ class CodeGenerator {
                 if (op_name == "terpri") {
                     code << "    std::cout << std::endl;\n";
                     return "0";
+                }
+
+                // format - simple formatting (simplified)
+                if (op_name == "format") {
+                    if (node->children.size() >= 2) {
+                        // Very basic: just concatenate args
+                        std::string result = "std::string(\"\")";
+                        for (size_t i = 2; i < node->children.size(); i++) {
+                            result = "(" + result + " + std::to_string(" + generateExpr(node->children[i]) + "))";
+                        }
+                        return result;
+                    }
+                }
+
+                // identity - return argument unchanged
+                if (op_name == "identity") {
+                    if (node->children.size() == 2) {
+                        return generateExpr(node->children[1]);
+                    }
+                }
+
+                // constantly - return constant function (simplified)
+                if (op_name == "constantly") {
+                    if (node->children.size() == 2) {
+                        return generateExpr(node->children[1]);
+                    }
                 }
 
                 // if - as an expression (ternary operator)
