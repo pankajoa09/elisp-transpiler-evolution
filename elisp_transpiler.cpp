@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <cstring>
 #include <cmath>
+#include <numeric>
 
 // AST Node Types
 enum class NodeType {
@@ -331,6 +332,42 @@ class CodeGenerator {
                     }
                 }
 
+                if (op_name == "gcd") {
+                    if (node->children.size() == 3) {
+                        std::string a = generateExpr(node->children[1]);
+                        std::string b = generateExpr(node->children[2]);
+                        std::string temp = getTempVar();
+                        code << "    auto " << temp << "_a = " << a << ";\n";
+                        code << "    auto " << temp << "_b = " << b << ";\n";
+                        code << "    while (" << temp << "_b != 0) {\n";
+                        code << "        auto t = " << temp << "_b;\n";
+                        code << "        " << temp << "_b = " << temp << "_a % " << temp << "_b;\n";
+                        code << "        " << temp << "_a = t;\n";
+                        code << "    }\n";
+                        return temp + "_a";
+                    }
+                }
+
+                if (op_name == "lcm") {
+                    if (node->children.size() == 3) {
+                        std::string a = generateExpr(node->children[1]);
+                        std::string b = generateExpr(node->children[2]);
+                        std::string temp = getTempVar();
+                        // LCM(a,b) = abs(a*b) / GCD(a,b)
+                        code << "    auto " << temp << "_a = " << a << ";\n";
+                        code << "    auto " << temp << "_b = " << b << ";\n";
+                        code << "    auto " << temp << "_gcd_a = " << temp << "_a;\n";
+                        code << "    auto " << temp << "_gcd_b = " << temp << "_b;\n";
+                        code << "    while (" << temp << "_gcd_b != 0) {\n";
+                        code << "        auto t = " << temp << "_gcd_b;\n";
+                        code << "        " << temp << "_gcd_b = " << temp << "_gcd_a % " << temp << "_gcd_b;\n";
+                        code << "        " << temp << "_gcd_a = t;\n";
+                        code << "    }\n";
+                        code << "    auto " << temp << " = abs(" << temp << "_a * " << temp << "_b) / " << temp << "_gcd_a;\n";
+                        return temp;
+                    }
+                }
+
                 // Comparison operators
                 if (op_name == ">" || op_name == "<" || op_name == "=" ||
                     op_name == ">=" || op_name == "<=") {
@@ -565,6 +602,18 @@ class CodeGenerator {
                 if (op_name == "atom") {
                     // Opposite of cons cell - in our model, most things are atoms
                     return "true";
+                }
+
+                if (op_name == "consp") {
+                    // Check if it's a cons cell
+                    return "false";  // Simplified for now
+                }
+
+                if (op_name == "endp") {
+                    // Check if list is empty
+                    if (node->children.size() == 2) {
+                        return "(" + generateExpr(node->children[1]) + ".empty() ? 1 : 0)";
+                    }
                 }
 
                 // Equality predicates
