@@ -1087,6 +1087,80 @@ class CodeGenerator {
                     }
                 }
 
+                // string-trim functions
+                if (op_name == "string-trim" || op_name == "string-trim-left" || op_name == "string-trim-right") {
+                    if (node->children.size() == 2) {
+                        std::string str = generateExpr(node->children[1]);
+                        std::string temp = getTempVar();
+                        code << "    auto " << temp << " = std::string(" << str << ");\n";
+                        if (op_name == "string-trim" || op_name == "string-trim-left") {
+                            code << "    " << temp << ".erase(" << temp << ".begin(), "
+                                 << "std::find_if(" << temp << ".begin(), " << temp << ".end(), "
+                                 << "[](unsigned char ch) { return !std::isspace(ch); }));\n";
+                        }
+                        if (op_name == "string-trim" || op_name == "string-trim-right") {
+                            code << "    " << temp << ".erase(std::find_if(" << temp << ".rbegin(), "
+                                 << temp << ".rend(), [](unsigned char ch) { return !std::isspace(ch); }).base(), "
+                                 << temp << ".end());\n";
+                        }
+                        return temp;
+                    }
+                }
+
+                // split-string
+                if (op_name == "split-string") {
+                    if (node->children.size() >= 2) {
+                        std::string str = generateExpr(node->children[1]);
+                        std::string sep = (node->children.size() >= 3) ? generateExpr(node->children[2]) : "\" \"";
+                        std::string temp = getTempVar();
+                        code << "    auto " << temp << "_str = std::string(" << str << ");\n";
+                        code << "    auto " << temp << "_sep = std::string(" << sep << ");\n";
+                        code << "    std::vector<int> " << temp << ";\n";
+                        code << "    // Simplified: count words only\n";
+                        code << "    size_t pos = 0, count = 0;\n";
+                        code << "    while ((pos = " << temp << "_str.find(" << temp << "_sep, pos)) != std::string::npos) {\n";
+                        code << "        count++; pos += " << temp << "_sep.length();\n";
+                        code << "    }\n";
+                        code << "    " << temp << ".push_back(count + 1);\n";
+                        return temp;
+                    }
+                }
+
+                // string-join
+                if (op_name == "string-join") {
+                    if (node->children.size() >= 2) {
+                        std::string list = generateExpr(node->children[1]);
+                        std::string sep = (node->children.size() >= 3) ? generateExpr(node->children[2]) : "\"\"";
+                        std::string temp = getTempVar();
+                        code << "    auto " << temp << "_list = " << list << ";\n";
+                        code << "    std::string " << temp << ";\n";
+                        code << "    for (size_t i = 0; i < " << temp << "_list.size(); i++) {\n";
+                        code << "        if (i > 0) " << temp << " += " << sep << ";\n";
+                        code << "        " << temp << " += std::to_string(" << temp << "_list[i]);\n";
+                        code << "    }\n";
+                        return temp;
+                    }
+                }
+
+                // symbol functions (simplified)
+                if (op_name == "symbol-name") {
+                    if (node->children.size() == 2) {
+                        return "std::string(\"symbol\")";  // Simplified
+                    }
+                }
+
+                if (op_name == "symbol-value") {
+                    if (node->children.size() == 2) {
+                        return generateExpr(node->children[1]);  // Simplified
+                    }
+                }
+
+                if (op_name == "intern") {
+                    if (node->children.size() == 2) {
+                        return generateExpr(node->children[1]);  // Simplified
+                    }
+                }
+
                 // print, prin1, princ - output functions
                 if (op_name == "print" || op_name == "prin1") {
                     if (node->children.size() == 2) {
