@@ -224,6 +224,9 @@ class CodeGenerator {
             if (node->str_value == "nil") {
                 return "0";
             }
+            if (node->str_value == "t") {
+                return "1";
+            }
             return sanitizeIdentifier(node->str_value);
         } else if (node->type == NodeType::String) {
             return "\"" + node->str_value + "\"";
@@ -798,6 +801,136 @@ class CodeGenerator {
                     if (node->children.size() == 2) {
                         std::string list = generateExpr(node->children[1]);
                         return "(" + list + ".back())";
+                    }
+                }
+
+                // take - take first n elements
+                if (op_name == "take") {
+                    if (node->children.size() == 3) {
+                        std::string n = generateExpr(node->children[1]);
+                        std::string list = generateExpr(node->children[2]);
+                        std::string temp = getTempVar();
+                        code << "    auto " << temp << "_src = " << list << ";\n";
+                        code << "    int " << temp << "_n = std::min((int)" << n << ", (int)" << temp << "_src.size());\n";
+                        code << "    std::vector<int> " << temp << "(" << temp << "_src.begin(), " << temp << "_src.begin() + " << temp << "_n);\n";
+                        return temp;
+                    }
+                }
+
+                // drop - drop first n elements
+                if (op_name == "drop") {
+                    if (node->children.size() == 3) {
+                        std::string n = generateExpr(node->children[1]);
+                        std::string list = generateExpr(node->children[2]);
+                        std::string temp = getTempVar();
+                        code << "    auto " << temp << "_src = " << list << ";\n";
+                        code << "    int " << temp << "_n = std::min((int)" << n << ", (int)" << temp << "_src.size());\n";
+                        code << "    std::vector<int> " << temp << "(" << temp << "_src.begin() + " << temp << "_n, " << temp << "_src.end());\n";
+                        return temp;
+                    }
+                }
+
+                // take-while - take elements while predicate is true
+                if (op_name == "take-while") {
+                    if (node->children.size() == 3) {
+                        std::string pred = node->children[1]->str_value;
+                        std::string sanitized_pred = sanitizeIdentifier(pred);
+                        std::string list = generateExpr(node->children[2]);
+                        std::string temp = getTempVar();
+                        code << "    auto " << temp << "_src = " << list << ";\n";
+                        code << "    std::vector<int> " << temp << ";\n";
+                        code << "    for (auto item : " << temp << "_src) {\n";
+                        code << "        if (" << sanitized_pred << "(item)) {\n";
+                        code << "            " << temp << ".push_back(item);\n";
+                        code << "        } else {\n";
+                        code << "            break;\n";
+                        code << "        }\n";
+                        code << "    }\n";
+                        return temp;
+                    }
+                }
+
+                // drop-while - drop elements while predicate is true
+                if (op_name == "drop-while") {
+                    if (node->children.size() == 3) {
+                        std::string pred = node->children[1]->str_value;
+                        std::string sanitized_pred = sanitizeIdentifier(pred);
+                        std::string list = generateExpr(node->children[2]);
+                        std::string temp = getTempVar();
+                        code << "    auto " << temp << "_src = " << list << ";\n";
+                        code << "    std::vector<int> " << temp << ";\n";
+                        code << "    bool dropping = true;\n";
+                        code << "    for (auto item : " << temp << "_src) {\n";
+                        code << "        if (dropping && " << sanitized_pred << "(item)) {\n";
+                        code << "            continue;\n";
+                        code << "        }\n";
+                        code << "        dropping = false;\n";
+                        code << "        " << temp << ".push_back(item);\n";
+                        code << "    }\n";
+                        return temp;
+                    }
+                }
+
+                // split-at - split list at index
+                if (op_name == "split-at") {
+                    if (node->children.size() == 3) {
+                        std::string n = generateExpr(node->children[1]);
+                        std::string list = generateExpr(node->children[2]);
+                        std::string temp = getTempVar();
+                        code << "    auto " << temp << "_src = " << list << ";\n";
+                        code << "    int " << temp << "_n = std::min((int)" << n << ", (int)" << temp << "_src.size());\n";
+                        code << "    // Simplified: returns first part only\n";
+                        code << "    std::vector<int> " << temp << "(" << temp << "_src.begin(), " << temp << "_src.begin() + " << temp << "_n);\n";
+                        return temp;
+                    }
+                }
+
+                // zip - combine two lists element-wise (simplified)
+                if (op_name == "zip") {
+                    if (node->children.size() == 3) {
+                        std::string list1 = generateExpr(node->children[1]);
+                        std::string list2 = generateExpr(node->children[2]);
+                        std::string temp = getTempVar();
+                        code << "    auto " << temp << "_l1 = " << list1 << ";\n";
+                        code << "    auto " << temp << "_l2 = " << list2 << ";\n";
+                        code << "    std::vector<int> " << temp << ";\n";
+                        code << "    size_t " << temp << "_len = std::min(" << temp << "_l1.size(), " << temp << "_l2.size());\n";
+                        code << "    for (size_t i = 0; i < " << temp << "_len; i++) {\n";
+                        code << "        " << temp << ".push_back(" << temp << "_l1[i]);\n";
+                        code << "        " << temp << ".push_back(" << temp << "_l2[i]);\n";
+                        code << "    }\n";
+                        return temp;
+                    }
+                }
+
+                // partition - partition list by predicate
+                if (op_name == "partition") {
+                    if (node->children.size() == 3) {
+                        std::string pred = node->children[1]->str_value;
+                        std::string sanitized_pred = sanitizeIdentifier(pred);
+                        std::string list = generateExpr(node->children[2]);
+                        std::string temp = getTempVar();
+                        code << "    auto " << temp << "_src = " << list << ";\n";
+                        code << "    std::vector<int> " << temp << "_true;\n";
+                        code << "    std::vector<int> " << temp << "_false;\n";
+                        code << "    for (auto item : " << temp << "_src) {\n";
+                        code << "        if (" << sanitized_pred << "(item)) {\n";
+                        code << "            " << temp << "_true.push_back(item);\n";
+                        code << "        } else {\n";
+                        code << "            " << temp << "_false.push_back(item);\n";
+                        code << "        }\n";
+                        code << "    }\n";
+                        code << "    // Simplified: returns true partition only\n";
+                        code << "    auto " << temp << " = " << temp << "_true;\n";
+                        return temp;
+                    }
+                }
+
+                // group-by - group list elements by key function (simplified)
+                if (op_name == "group-by") {
+                    if (node->children.size() == 3) {
+                        // Simplified: just returns the original list
+                        return generateExpr(node->children[2]);
                     }
                 }
 
