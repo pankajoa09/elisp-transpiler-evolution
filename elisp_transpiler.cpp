@@ -359,6 +359,58 @@ class CodeGenerator {
                     }
                 }
 
+                // Bitwise operations
+                if (op_name == "logand") {
+                    if (node->children.size() >= 3) {
+                        std::string result = generateExpr(node->children[1]);
+                        for (size_t i = 2; i < node->children.size(); i++) {
+                            result = "(" + result + " & " + generateExpr(node->children[i]) + ")";
+                        }
+                        return result;
+                    }
+                }
+
+                if (op_name == "logior") {
+                    if (node->children.size() >= 3) {
+                        std::string result = generateExpr(node->children[1]);
+                        for (size_t i = 2; i < node->children.size(); i++) {
+                            result = "(" + result + " | " + generateExpr(node->children[i]) + ")";
+                        }
+                        return result;
+                    }
+                }
+
+                if (op_name == "logxor") {
+                    if (node->children.size() >= 3) {
+                        std::string result = generateExpr(node->children[1]);
+                        for (size_t i = 2; i < node->children.size(); i++) {
+                            result = "(" + result + " ^ " + generateExpr(node->children[i]) + ")";
+                        }
+                        return result;
+                    }
+                }
+
+                if (op_name == "lognot") {
+                    if (node->children.size() == 2) {
+                        return "(~" + generateExpr(node->children[1]) + ")";
+                    }
+                }
+
+                if (op_name == "ash" || op_name == "lsh") {
+                    // Arithmetic/logical shift
+                    if (node->children.size() == 3) {
+                        std::string val = generateExpr(node->children[1]);
+                        std::string count = generateExpr(node->children[2]);
+                        // Positive count = left shift, negative = right shift
+                        std::string temp = getTempVar();
+                        code << "    int " << temp << "_count = " << count << ";\n";
+                        code << "    int " << temp << " = (" << temp << "_count >= 0) ? "
+                             << "(" << val << " << " << temp << "_count) : "
+                             << "(" << val << " >> (-" << temp << "_count));\n";
+                        return temp;
+                    }
+                }
+
                 if (op_name == "1+" || op_name == "add1") {
                     if (node->children.size() == 2) {
                         return "(" + generateExpr(node->children[1]) + " + 1)";
@@ -409,10 +461,11 @@ class CodeGenerator {
 
                 // Comparison operators
                 if (op_name == ">" || op_name == "<" || op_name == "=" ||
-                    op_name == ">=" || op_name == "<=") {
+                    op_name == ">=" || op_name == "<=" || op_name == "/=") {
                     if (node->children.size() == 3) {
                         std::string cpp_op = op_name;
                         if (op_name == "=") cpp_op = "==";
+                        if (op_name == "/=") cpp_op = "!=";
                         return "(" + generateExpr(node->children[1]) + " " +
                                cpp_op + " " + generateExpr(node->children[2]) + ")";
                     }
@@ -1615,6 +1668,36 @@ class CodeGenerator {
                 if (op_name == "terpri") {
                     code << "    std::cout << std::endl;\n";
                     return "0";
+                }
+
+                // error - signal an error
+                if (op_name == "error") {
+                    if (node->children.size() >= 2) {
+                        std::string msg = generateExpr(node->children[1]);
+                        code << "    std::cerr << \"Error: \" << " << msg << " << std::endl;\n";
+                        code << "    throw std::runtime_error(\"Elisp error\");\n";
+                        return "0";
+                    }
+                }
+
+                // signal - signal a condition (simplified)
+                if (op_name == "signal") {
+                    if (node->children.size() >= 2) {
+                        std::string condition = generateExpr(node->children[1]);
+                        code << "    std::cerr << \"Signal: \" << " << condition << " << std::endl;\n";
+                        code << "    throw std::runtime_error(\"Elisp signal\");\n";
+                        return "0";
+                    }
+                }
+
+                // throw - throw to a catch (simplified)
+                if (op_name == "throw") {
+                    if (node->children.size() >= 3) {
+                        std::string tag = generateExpr(node->children[1]);
+                        std::string value = generateExpr(node->children[2]);
+                        code << "    throw std::runtime_error(\"Throw to catch\");\n";
+                        return value;
+                    }
                 }
 
                 // format - simple formatting (simplified)
