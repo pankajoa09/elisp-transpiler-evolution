@@ -1377,6 +1377,23 @@ class CodeGenerator {
                     return "true";
                 }
 
+                if (op_name == "nlistp") {
+                    // Not a list
+                    return "false";  // Simplified
+                }
+
+                if (op_name == "proper-list-p") {
+                    // Proper list (not circular, ends with nil)
+                    return "true";  // Simplified: assume all lists are proper
+                }
+
+                if (op_name == "list-length") {
+                    // Get list length (returns nil for circular lists)
+                    if (node->children.size() == 2) {
+                        return "(int)" + generateExpr(node->children[1]) + ".size()";
+                    }
+                }
+
                 // Equality predicates
                 if (op_name == "eq" || op_name == "eql") {
                     if (node->children.size() == 3) {
@@ -1560,6 +1577,59 @@ class CodeGenerator {
                         std::string temp = getTempVar();
                         code << "    auto " << temp << "_s = std::string(" << str << ");\n";
                         code << "    int " << temp << " = " << temp << "_s.empty() ? 0 : (int)" << temp << "_s[0];\n";
+                        return temp;
+                    }
+                }
+
+                // string-prefix-p - check if string starts with prefix
+                if (op_name == "string-prefix-p") {
+                    if (node->children.size() == 3) {
+                        std::string prefix = generateExpr(node->children[1]);
+                        std::string str = generateExpr(node->children[2]);
+                        std::string temp = getTempVar();
+                        code << "    auto " << temp << "_str = std::string(" << str << ");\n";
+                        code << "    auto " << temp << "_prefix = std::string(" << prefix << ");\n";
+                        code << "    int " << temp << " = (" << temp << "_str.find(" << temp << "_prefix) == 0) ? 1 : 0;\n";
+                        return temp;
+                    }
+                }
+
+                // string-suffix-p - check if string ends with suffix
+                if (op_name == "string-suffix-p") {
+                    if (node->children.size() == 3) {
+                        std::string suffix = generateExpr(node->children[1]);
+                        std::string str = generateExpr(node->children[2]);
+                        std::string temp = getTempVar();
+                        code << "    auto " << temp << "_str = std::string(" << str << ");\n";
+                        code << "    auto " << temp << "_suffix = std::string(" << suffix << ");\n";
+                        code << "    int " << temp << " = 0;\n";
+                        code << "    if (" << temp << "_str.length() >= " << temp << "_suffix.length()) {\n";
+                        code << "        " << temp << " = (" << temp << "_str.compare(" << temp << "_str.length() - "
+                             << temp << "_suffix.length(), " << temp << "_suffix.length(), " << temp << "_suffix) == 0) ? 1 : 0;\n";
+                        code << "    }\n";
+                        return temp;
+                    }
+                }
+
+                // string-empty-p - check if string is empty
+                if (op_name == "string-empty-p") {
+                    if (node->children.size() == 2) {
+                        std::string str = generateExpr(node->children[1]);
+                        return "(std::string(" + str + ").empty() ? 1 : 0)";
+                    }
+                }
+
+                // string-blank-p - check if string is empty or only whitespace
+                if (op_name == "string-blank-p") {
+                    if (node->children.size() == 2) {
+                        std::string str = generateExpr(node->children[1]);
+                        std::string temp = getTempVar();
+                        code << "    auto " << temp << "_str = std::string(" << str << ");\n";
+                        code << "    auto " << temp << "_trimmed = " << temp << "_str;\n";
+                        code << "    " << temp << "_trimmed.erase(" << temp << "_trimmed.begin(), "
+                             << "std::find_if(" << temp << "_trimmed.begin(), " << temp << "_trimmed.end(), "
+                             << "[](unsigned char ch) { return !std::isspace(ch); }));\n";
+                        code << "    int " << temp << " = " << temp << "_trimmed.empty() ? 1 : 0;\n";
                         return temp;
                     }
                 }
@@ -2198,6 +2268,51 @@ class CodeGenerator {
                     std::string expr = generateExpr(node->children[i]);
                     code << "    " << expr << ";\n";
                 }
+            }
+            return;
+        }
+
+        // prog1 - execute expressions, return first
+        if (op_name == "prog1") {
+            if (node->children.size() < 2) return;
+
+            std::string temp = getTempVar();
+            std::string first_result = generateExpr(node->children[1]);
+            code << "    auto " << temp << " = " << first_result << ";\n";
+
+            // Execute remaining expressions for side effects
+            for (size_t i = 2; i < node->children.size(); i++) {
+                std::string expr = generateExpr(node->children[i]);
+                code << "    " << expr << ";\n";
+            }
+
+            if (is_last) {
+                code << "    std::cout << " << temp << " << std::endl;\n";
+            }
+            return;
+        }
+
+        // prog2 - execute expressions, return second
+        if (op_name == "prog2") {
+            if (node->children.size() < 3) return;
+
+            // Execute first expression for side effects
+            std::string first_expr = generateExpr(node->children[1]);
+            code << "    " << first_expr << ";\n";
+
+            // Save second expression result
+            std::string temp = getTempVar();
+            std::string second_result = generateExpr(node->children[2]);
+            code << "    auto " << temp << " = " << second_result << ";\n";
+
+            // Execute remaining expressions for side effects
+            for (size_t i = 3; i < node->children.size(); i++) {
+                std::string expr = generateExpr(node->children[i]);
+                code << "    " << expr << ";\n";
+            }
+
+            if (is_last) {
+                code << "    std::cout << " << temp << " << std::endl;\n";
             }
             return;
         }
