@@ -321,6 +321,37 @@ class CodeGenerator {
                     }
                 }
 
+                if (op_name == "truncate") {
+                    if (node->children.size() == 2) {
+                        return "((int)trunc(" + generateExpr(node->children[1]) + "))";
+                    }
+                }
+
+                if (op_name == "signum") {
+                    if (node->children.size() == 2) {
+                        std::string val = generateExpr(node->children[1]);
+                        return "((" + val + " > 0) ? 1 : ((" + val + " < 0) ? -1 : 0))";
+                    }
+                }
+
+                if (op_name == "isnan") {
+                    if (node->children.size() == 2) {
+                        return "std::isnan(" + generateExpr(node->children[1]) + ")";
+                    }
+                }
+
+                if (op_name == "isinf") {
+                    if (node->children.size() == 2) {
+                        return "std::isinf(" + generateExpr(node->children[1]) + ")";
+                    }
+                }
+
+                if (op_name == "finite") {
+                    if (node->children.size() == 2) {
+                        return "std::isfinite(" + generateExpr(node->children[1]) + ")";
+                    }
+                }
+
                 if (op_name == "sin") {
                     if (node->children.size() == 2) {
                         return "sin(" + generateExpr(node->children[1]) + ")";
@@ -1591,6 +1622,37 @@ class CodeGenerator {
                     return "\"\"";
                 }
 
+                // make-string - create string of repeated character
+                if (op_name == "make-string") {
+                    if (node->children.size() >= 3) {
+                        std::string len = generateExpr(node->children[1]);
+                        std::string ch = generateExpr(node->children[2]);
+                        return "std::string(" + len + ", (char)" + ch + ")";
+                    }
+                }
+
+                // string-fill - fill string with character (destructive)
+                if (op_name == "string-fill") {
+                    if (node->children.size() == 3) {
+                        std::string str_var = node->children[1]->str_value;
+                        std::string sanitized = sanitizeIdentifier(str_var);
+                        std::string ch = generateExpr(node->children[2]);
+                        code << "    std::fill(" << sanitized << ".begin(), " << sanitized << ".end(), (char)" << ch << ");\n";
+                        return sanitized;
+                    }
+                }
+
+                // reverse-string - reverse a string
+                if (op_name == "reverse-string") {
+                    if (node->children.size() == 2) {
+                        std::string str = generateExpr(node->children[1]);
+                        std::string temp = getTempVar();
+                        code << "    auto " << temp << " = std::string(" << str << ");\n";
+                        code << "    std::reverse(" << temp << ".begin(), " << temp << ".end());\n";
+                        return temp;
+                    }
+                }
+
                 // string= - string equality
                 if (op_name == "string=" || op_name == "string-equal") {
                     if (node->children.size() == 3) {
@@ -1690,6 +1752,35 @@ class CodeGenerator {
                         code << "    auto " << temp << "_s = std::string(" << str << ");\n";
                         code << "    int " << temp << " = " << temp << "_s.empty() ? 0 : (int)" << temp << "_s[0];\n";
                         return temp;
+                    }
+                }
+
+                // Type conversion functions
+                if (op_name == "number-to-string" || op_name == "int-to-string") {
+                    if (node->children.size() == 2) {
+                        std::string num = generateExpr(node->children[1]);
+                        return "std::to_string(" + num + ")";
+                    }
+                }
+
+                if (op_name == "string-to-number") {
+                    if (node->children.size() == 2) {
+                        std::string str = generateExpr(node->children[1]);
+                        std::string temp = getTempVar();
+                        code << "    int " << temp << " = 0;\n";
+                        code << "    try {\n";
+                        code << "        " << temp << " = std::stoi(std::string(" << str << "));\n";
+                        code << "    } catch (...) {\n";
+                        code << "        " << temp << " = 0;\n";
+                        code << "    }\n";
+                        return temp;
+                    }
+                }
+
+                if (op_name == "string-to-int") {
+                    if (node->children.size() == 2) {
+                        std::string str = generateExpr(node->children[1]);
+                        return "std::stoi(std::string(" + str + "))";
                     }
                 }
 
