@@ -645,6 +645,71 @@ class CodeGenerator {
                     }
                 }
 
+                // Hash table operations
+                if (op_name == "make-hash-table") {
+                    // Simplified: ignore all keyword arguments
+                    std::string temp = getTempVar();
+                    code << "    std::map<int, int> " << temp << ";\n";
+                    return temp;
+                }
+
+                if (op_name == "gethash") {
+                    if (node->children.size() >= 3) {
+                        std::string key = generateExpr(node->children[1]);
+                        std::string table_var = node->children[2]->str_value;
+                        std::string sanitized_table = sanitizeIdentifier(table_var);
+                        std::string default_val = (node->children.size() >= 4) ?
+                                                 generateExpr(node->children[3]) : "0";
+                        std::string temp = getTempVar();
+                        code << "    auto " << temp << "_it = " << sanitized_table << ".find(" << key << ");\n";
+                        code << "    int " << temp << " = (" << temp << "_it != " << sanitized_table << ".end()) ? "
+                             << temp << "_it->second : " << default_val << ";\n";
+                        return temp;
+                    }
+                }
+
+                if (op_name == "puthash") {
+                    if (node->children.size() == 4) {
+                        std::string key = generateExpr(node->children[1]);
+                        std::string val = generateExpr(node->children[2]);
+                        std::string table_var = node->children[3]->str_value;
+                        std::string sanitized_table = sanitizeIdentifier(table_var);
+                        code << "    " << sanitized_table << "[" << key << "] = " << val << ";\n";
+                        return val;
+                    }
+                }
+
+                if (op_name == "remhash") {
+                    if (node->children.size() == 3) {
+                        std::string key = generateExpr(node->children[1]);
+                        std::string table_var = node->children[2]->str_value;
+                        std::string sanitized_table = sanitizeIdentifier(table_var);
+                        code << "    " << sanitized_table << ".erase(" << key << ");\n";
+                        return "0";
+                    }
+                }
+
+                if (op_name == "clrhash") {
+                    if (node->children.size() == 2) {
+                        std::string table_var = node->children[1]->str_value;
+                        std::string sanitized_table = sanitizeIdentifier(table_var);
+                        code << "    " << sanitized_table << ".clear();\n";
+                        return "0";
+                    }
+                }
+
+                if (op_name == "hash-table-count" || op_name == "hash-table-size") {
+                    if (node->children.size() == 2) {
+                        std::string table = generateExpr(node->children[1]);
+                        return "(int)" + table + ".size()";
+                    }
+                }
+
+                if (op_name == "hash-table-p") {
+                    // Simplified: just return 1 (true) for now
+                    return "1";
+                }
+
                 // Sequence functions
                 if (op_name == "sort") {
                     if (node->children.size() >= 2) {
@@ -1283,11 +1348,71 @@ class CodeGenerator {
                     }
                 }
 
+                // capitalize - capitalize first character
+                if (op_name == "capitalize") {
+                    if (node->children.size() == 2) {
+                        std::string str = generateExpr(node->children[1]);
+                        std::string temp = getTempVar();
+                        code << "    auto " << temp << " = std::string(" << str << ");\n";
+                        code << "    if (!" << temp << ".empty()) {\n";
+                        code << "        " << temp << "[0] = std::toupper(" << temp << "[0]);\n";
+                        code << "        std::transform(" << temp << ".begin() + 1, " << temp << ".end(), "
+                             << temp << ".begin() + 1, ::tolower);\n";
+                        code << "    }\n";
+                        return temp;
+                    }
+                }
+
+                // upcase-initials - capitalize first letter of each word
+                if (op_name == "upcase-initials") {
+                    if (node->children.size() == 2) {
+                        std::string str = generateExpr(node->children[1]);
+                        std::string temp = getTempVar();
+                        code << "    auto " << temp << " = std::string(" << str << ");\n";
+                        code << "    bool new_word = true;\n";
+                        code << "    for (size_t i = 0; i < " << temp << ".length(); i++) {\n";
+                        code << "        if (std::isspace(" << temp << "[i])) {\n";
+                        code << "            new_word = true;\n";
+                        code << "        } else if (new_word) {\n";
+                        code << "            " << temp << "[i] = std::toupper(" << temp << "[i]);\n";
+                        code << "            new_word = false;\n";
+                        code << "        }\n";
+                        code << "    }\n";
+                        return temp;
+                    }
+                }
+
                 // string-length - get string length
                 if (op_name == "string-length") {
                     if (node->children.size() == 2) {
                         return "((int)std::string(" + generateExpr(node->children[1]) + ").length())";
                     }
+                }
+
+                // char-to-string - convert character code to string
+                if (op_name == "char-to-string") {
+                    if (node->children.size() == 2) {
+                        std::string ch = generateExpr(node->children[1]);
+                        std::string temp = getTempVar();
+                        code << "    std::string " << temp << "(1, (char)" << ch << ");\n";
+                        return temp;
+                    }
+                }
+
+                // string-to-char - get first character code from string
+                if (op_name == "string-to-char") {
+                    if (node->children.size() == 2) {
+                        std::string str = generateExpr(node->children[1]);
+                        std::string temp = getTempVar();
+                        code << "    auto " << temp << "_s = std::string(" << str << ");\n";
+                        code << "    int " << temp << " = " << temp << "_s.empty() ? 0 : (int)" << temp << "_s[0];\n";
+                        return temp;
+                    }
+                }
+
+                // aref for strings - get character at index
+                if (op_name == "aref" && node->children.size() == 3) {
+                    // Already handled by vector aref, but add string support
                 }
 
                 // string-trim functions
