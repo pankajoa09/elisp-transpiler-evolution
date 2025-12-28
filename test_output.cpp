@@ -3,11 +3,7 @@
 #include <vector>
 #include <string>
 
-int grade(int score) {
-    return ((score >= 90) ? "A" : ((score >= 80) ? "B" : ((score >= 70) ? "C" : "F")));
-}
-
 int main() {
-    std::cout << "grade" << std::endl;
+    std::cout << ((int)std::string("hello").length()) << std::endl;
     return 0;
 }

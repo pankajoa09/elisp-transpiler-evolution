@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <cstring>
 #include <cmath>
+#include <cstdlib>
 #include <numeric>
 
 // AST Node Types
@@ -317,6 +318,44 @@ class CodeGenerator {
                 if (op_name == "round") {
                     if (node->children.size() == 2) {
                         return "((int)round(" + generateExpr(node->children[1]) + "))";
+                    }
+                }
+
+                if (op_name == "sin") {
+                    if (node->children.size() == 2) {
+                        return "sin(" + generateExpr(node->children[1]) + ")";
+                    }
+                }
+
+                if (op_name == "cos") {
+                    if (node->children.size() == 2) {
+                        return "cos(" + generateExpr(node->children[1]) + ")";
+                    }
+                }
+
+                if (op_name == "tan") {
+                    if (node->children.size() == 2) {
+                        return "tan(" + generateExpr(node->children[1]) + ")";
+                    }
+                }
+
+                if (op_name == "log") {
+                    if (node->children.size() == 2) {
+                        return "log(" + generateExpr(node->children[1]) + ")";
+                    }
+                }
+
+                if (op_name == "exp") {
+                    if (node->children.size() == 2) {
+                        return "exp(" + generateExpr(node->children[1]) + ")";
+                    }
+                }
+
+                if (op_name == "random") {
+                    if (node->children.size() == 2) {
+                        return "(rand() % " + generateExpr(node->children[1]) + ")";
+                    } else {
+                        return "rand()";
                     }
                 }
 
@@ -899,6 +938,170 @@ class CodeGenerator {
                         code << "        if (" << temp << "_plist[i] == " << key << ") {\n";
                         code << "            " << temp << " = 1;\n";
                         code << "            break;\n";
+                        code << "        }\n";
+                        code << "    }\n";
+                        return temp;
+                    }
+                }
+
+                // reduce - fold a list with a binary function
+                if (op_name == "reduce") {
+                    if (node->children.size() >= 3) {
+                        std::string func_name = node->children[1]->str_value;
+                        std::string sanitized_func = sanitizeIdentifier(func_name);
+                        std::string list = generateExpr(node->children[2]);
+                        std::string temp = getTempVar();
+                        code << "    auto " << temp << "_list = " << list << ";\n";
+                        code << "    int " << temp << " = 0;\n";
+                        code << "    if (!" << temp << "_list.empty()) {\n";
+                        code << "        " << temp << " = " << temp << "_list[0];\n";
+                        code << "        for (size_t i = 1; i < " << temp << "_list.size(); i++) {\n";
+                        code << "            " << temp << " = " << sanitized_func << "(" << temp << ", " << temp << "_list[i]);\n";
+                        code << "        }\n";
+                        code << "    }\n";
+                        return temp;
+                    }
+                }
+
+                // every - test if all elements satisfy predicate
+                if (op_name == "every") {
+                    if (node->children.size() == 3) {
+                        std::string pred_name = node->children[1]->str_value;
+                        std::string sanitized_pred = sanitizeIdentifier(pred_name);
+                        std::string list = generateExpr(node->children[2]);
+                        std::string temp = getTempVar();
+                        code << "    auto " << temp << "_list = " << list << ";\n";
+                        code << "    int " << temp << " = 1;\n";
+                        code << "    for (auto item : " << temp << "_list) {\n";
+                        code << "        if (!" << sanitized_pred << "(item)) {\n";
+                        code << "            " << temp << " = 0;\n";
+                        code << "            break;\n";
+                        code << "        }\n";
+                        code << "    }\n";
+                        return temp;
+                    }
+                }
+
+                // some - test if any element satisfies predicate
+                if (op_name == "some") {
+                    if (node->children.size() == 3) {
+                        std::string pred_name = node->children[1]->str_value;
+                        std::string sanitized_pred = sanitizeIdentifier(pred_name);
+                        std::string list = generateExpr(node->children[2]);
+                        std::string temp = getTempVar();
+                        code << "    auto " << temp << "_list = " << list << ";\n";
+                        code << "    int " << temp << " = 0;\n";
+                        code << "    for (auto item : " << temp << "_list) {\n";
+                        code << "        if (" << sanitized_pred << "(item)) {\n";
+                        code << "            " << temp << " = 1;\n";
+                        code << "            break;\n";
+                        code << "        }\n";
+                        code << "    }\n";
+                        return temp;
+                    }
+                }
+
+                // notany - test if no element satisfies predicate
+                if (op_name == "notany") {
+                    if (node->children.size() == 3) {
+                        std::string pred_name = node->children[1]->str_value;
+                        std::string sanitized_pred = sanitizeIdentifier(pred_name);
+                        std::string list = generateExpr(node->children[2]);
+                        std::string temp = getTempVar();
+                        code << "    auto " << temp << "_list = " << list << ";\n";
+                        code << "    int " << temp << " = 1;\n";
+                        code << "    for (auto item : " << temp << "_list) {\n";
+                        code << "        if (" << sanitized_pred << "(item)) {\n";
+                        code << "            " << temp << " = 0;\n";
+                        code << "            break;\n";
+                        code << "        }\n";
+                        code << "    }\n";
+                        return temp;
+                    }
+                }
+
+                // notevery - test if not all elements satisfy predicate
+                if (op_name == "notevery") {
+                    if (node->children.size() == 3) {
+                        std::string pred_name = node->children[1]->str_value;
+                        std::string sanitized_pred = sanitizeIdentifier(pred_name);
+                        std::string list = generateExpr(node->children[2]);
+                        std::string temp = getTempVar();
+                        code << "    auto " << temp << "_list = " << list << ";\n";
+                        code << "    int " << temp << " = 0;\n";
+                        code << "    for (auto item : " << temp << "_list) {\n";
+                        code << "        if (!" << sanitized_pred << "(item)) {\n";
+                        code << "            " << temp << " = 1;\n";
+                        code << "            break;\n";
+                        code << "        }\n";
+                        code << "    }\n";
+                        return temp;
+                    }
+                }
+
+                // adjoin - add element to list if not present
+                if (op_name == "adjoin") {
+                    if (node->children.size() == 3) {
+                        std::string item = generateExpr(node->children[1]);
+                        std::string list = generateExpr(node->children[2]);
+                        std::string temp = getTempVar();
+                        code << "    auto " << temp << " = " << list << ";\n";
+                        code << "    if (std::find(" << temp << ".begin(), " << temp << ".end(), " << item << ") == " << temp << ".end()) {\n";
+                        code << "        " << temp << ".push_back(" << item << ");\n";
+                        code << "    }\n";
+                        return temp;
+                    }
+                }
+
+                // union - set union of two lists
+                if (op_name == "union") {
+                    if (node->children.size() == 3) {
+                        std::string list1 = generateExpr(node->children[1]);
+                        std::string list2 = generateExpr(node->children[2]);
+                        std::string temp = getTempVar();
+                        code << "    auto " << temp << " = " << list1 << ";\n";
+                        code << "    auto " << temp << "_list2 = " << list2 << ";\n";
+                        code << "    for (auto item : " << temp << "_list2) {\n";
+                        code << "        if (std::find(" << temp << ".begin(), " << temp << ".end(), item) == " << temp << ".end()) {\n";
+                        code << "            " << temp << ".push_back(item);\n";
+                        code << "        }\n";
+                        code << "    }\n";
+                        return temp;
+                    }
+                }
+
+                // intersection - set intersection of two lists
+                if (op_name == "intersection") {
+                    if (node->children.size() == 3) {
+                        std::string list1 = generateExpr(node->children[1]);
+                        std::string list2 = generateExpr(node->children[2]);
+                        std::string temp = getTempVar();
+                        code << "    auto " << temp << "_list1 = " << list1 << ";\n";
+                        code << "    auto " << temp << "_list2 = " << list2 << ";\n";
+                        code << "    std::vector<int> " << temp << ";\n";
+                        code << "    for (auto item : " << temp << "_list1) {\n";
+                        code << "        if (std::find(" << temp << "_list2.begin(), " << temp << "_list2.end(), item) != " << temp << "_list2.end()) {\n";
+                        code << "            if (std::find(" << temp << ".begin(), " << temp << ".end(), item) == " << temp << ".end()) {\n";
+                        code << "                " << temp << ".push_back(item);\n";
+                        code << "            }\n";
+                        code << "        }\n";
+                        code << "    }\n";
+                        return temp;
+                    }
+                }
+
+                // set-difference - elements in first list but not in second
+                if (op_name == "set-difference") {
+                    if (node->children.size() == 3) {
+                        std::string list1 = generateExpr(node->children[1]);
+                        std::string list2 = generateExpr(node->children[2]);
+                        std::string temp = getTempVar();
+                        code << "    auto " << temp << "_list1 = " << list1 << ";\n";
+                        code << "    auto " << temp << "_list2 = " << list2 << ";\n";
+                        code << "    std::vector<int> " << temp << ";\n";
+                        code << "    for (auto item : " << temp << "_list1) {\n";
+                        code << "        if (std::find(" << temp << "_list2.begin(), " << temp << "_list2.end(), item) == " << temp << "_list2.end()) {\n";
+                        code << "            " << temp << ".push_back(item);\n";
                         code << "        }\n";
                         code << "    }\n";
                         return temp;
