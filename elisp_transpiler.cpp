@@ -710,6 +710,201 @@ class CodeGenerator {
                     }
                 }
 
+                // mapcar - map function over list (simplified: uses lambda)
+                if (op_name == "mapcar") {
+                    if (node->children.size() == 3) {
+                        // For user functions, generate a loop
+                        std::string func_name = node->children[1]->str_value;
+                        std::string sanitized_func = sanitizeIdentifier(func_name);
+                        std::string list = generateExpr(node->children[2]);
+                        std::string temp = getTempVar();
+                        code << "    auto " << temp << "_in = " << list << ";\n";
+                        code << "    std::vector<int> " << temp << ";\n";
+                        code << "    for (auto item : " << temp << "_in) {\n";
+                        code << "        " << temp << ".push_back(" << sanitized_func << "(item));\n";
+                        code << "    }\n";
+                        return temp;
+                    }
+                }
+
+                // mapc - like mapcar but for side effects, returns original list
+                if (op_name == "mapc") {
+                    if (node->children.size() == 3) {
+                        std::string func_name = node->children[1]->str_value;
+                        std::string sanitized_func = sanitizeIdentifier(func_name);
+                        std::string list = generateExpr(node->children[2]);
+                        std::string temp = getTempVar();
+                        code << "    auto " << temp << " = " << list << ";\n";
+                        code << "    for (auto item : " << temp << ") {\n";
+                        code << "        " << sanitized_func << "(item);\n";
+                        code << "    }\n";
+                        return temp;
+                    }
+                }
+
+                // mapconcat - map and concatenate with separator
+                if (op_name == "mapconcat") {
+                    if (node->children.size() == 4) {
+                        std::string func_name = node->children[1]->str_value;
+                        std::string sanitized_func = sanitizeIdentifier(func_name);
+                        std::string list = generateExpr(node->children[2]);
+                        std::string sep = generateExpr(node->children[3]);
+                        std::string temp = getTempVar();
+                        code << "    auto " << temp << "_in = " << list << ";\n";
+                        code << "    std::string " << temp << ";\n";
+                        code << "    bool first = true;\n";
+                        code << "    for (auto item : " << temp << "_in) {\n";
+                        code << "        if (!first) " << temp << " += " << sep << ";\n";
+                        code << "        first = false;\n";
+                        code << "        " << temp << " += std::to_string(" << sanitized_func << "(item));\n";
+                        code << "    }\n";
+                        return temp;
+                    }
+                }
+
+                // remove-if - remove elements matching predicate
+                if (op_name == "remove-if") {
+                    if (node->children.size() == 3) {
+                        std::string pred_name = node->children[1]->str_value;
+                        std::string sanitized_pred = sanitizeIdentifier(pred_name);
+                        std::string list = generateExpr(node->children[2]);
+                        std::string temp = getTempVar();
+                        code << "    auto " << temp << "_in = " << list << ";\n";
+                        code << "    std::vector<int> " << temp << ";\n";
+                        code << "    for (auto item : " << temp << "_in) {\n";
+                        code << "        if (!" << sanitized_pred << "(item)) " << temp << ".push_back(item);\n";
+                        code << "    }\n";
+                        return temp;
+                    }
+                }
+
+                // remove-if-not (keep-if) - keep elements matching predicate
+                if (op_name == "remove-if-not" || op_name == "keep-if") {
+                    if (node->children.size() == 3) {
+                        std::string pred_name = node->children[1]->str_value;
+                        std::string sanitized_pred = sanitizeIdentifier(pred_name);
+                        std::string list = generateExpr(node->children[2]);
+                        std::string temp = getTempVar();
+                        code << "    auto " << temp << "_in = " << list << ";\n";
+                        code << "    std::vector<int> " << temp << ";\n";
+                        code << "    for (auto item : " << temp << "_in) {\n";
+                        code << "        if (" << sanitized_pred << "(item)) " << temp << ".push_back(item);\n";
+                        code << "    }\n";
+                        return temp;
+                    }
+                }
+
+                // find-if - find first element matching predicate
+                if (op_name == "find-if") {
+                    if (node->children.size() == 3) {
+                        std::string pred_name = node->children[1]->str_value;
+                        std::string sanitized_pred = sanitizeIdentifier(pred_name);
+                        std::string list = generateExpr(node->children[2]);
+                        std::string temp = getTempVar();
+                        code << "    auto " << temp << "_in = " << list << ";\n";
+                        code << "    int " << temp << " = 0;\n";
+                        code << "    for (auto item : " << temp << "_in) {\n";
+                        code << "        if (" << sanitized_pred << "(item)) { " << temp << " = item; break; }\n";
+                        code << "    }\n";
+                        return temp;
+                    }
+                }
+
+                // Association lists (alists) - using vectors of pairs
+                if (op_name == "assoc" || op_name == "assq") {
+                    if (node->children.size() == 3) {
+                        std::string key = generateExpr(node->children[1]);
+                        std::string alist = generateExpr(node->children[2]);
+                        std::string temp = getTempVar();
+                        code << "    auto " << temp << "_list = " << alist << ";\n";
+                        code << "    int " << temp << " = 0;\n";
+                        code << "    // Simplified: returns value, not pair\n";
+                        code << "    for (size_t i = 0; i + 1 < " << temp << "_list.size(); i += 2) {\n";
+                        code << "        if (" << temp << "_list[i] == " << key << ") {\n";
+                        code << "            " << temp << " = " << temp << "_list[i + 1];\n";
+                        code << "            break;\n";
+                        code << "        }\n";
+                        code << "    }\n";
+                        return temp;
+                    }
+                }
+
+                if (op_name == "rassoc" || op_name == "rassq") {
+                    if (node->children.size() == 3) {
+                        std::string val = generateExpr(node->children[1]);
+                        std::string alist = generateExpr(node->children[2]);
+                        std::string temp = getTempVar();
+                        code << "    auto " << temp << "_list = " << alist << ";\n";
+                        code << "    int " << temp << " = 0;\n";
+                        code << "    // Reverse assoc: find by value, return key\n";
+                        code << "    for (size_t i = 0; i + 1 < " << temp << "_list.size(); i += 2) {\n";
+                        code << "        if (" << temp << "_list[i + 1] == " << val << ") {\n";
+                        code << "            " << temp << " = " << temp << "_list[i];\n";
+                        code << "            break;\n";
+                        code << "        }\n";
+                        code << "    }\n";
+                        return temp;
+                    }
+                }
+
+                // Property lists (plists) - flat key-value pairs
+                if (op_name == "plist-get") {
+                    if (node->children.size() == 3) {
+                        std::string plist = generateExpr(node->children[1]);
+                        std::string key = generateExpr(node->children[2]);
+                        std::string temp = getTempVar();
+                        code << "    auto " << temp << "_plist = " << plist << ";\n";
+                        code << "    int " << temp << " = 0;\n";
+                        code << "    for (size_t i = 0; i + 1 < " << temp << "_plist.size(); i += 2) {\n";
+                        code << "        if (" << temp << "_plist[i] == " << key << ") {\n";
+                        code << "            " << temp << " = " << temp << "_plist[i + 1];\n";
+                        code << "            break;\n";
+                        code << "        }\n";
+                        code << "    }\n";
+                        return temp;
+                    }
+                }
+
+                if (op_name == "plist-put") {
+                    if (node->children.size() == 4) {
+                        std::string plist_var = node->children[1]->str_value;
+                        std::string sanitized_plist = sanitizeIdentifier(plist_var);
+                        std::string key = generateExpr(node->children[2]);
+                        std::string val = generateExpr(node->children[3]);
+                        code << "    // plist-put: update or append\n";
+                        code << "    bool found = false;\n";
+                        code << "    for (size_t i = 0; i + 1 < " << sanitized_plist << ".size(); i += 2) {\n";
+                        code << "        if (" << sanitized_plist << "[i] == " << key << ") {\n";
+                        code << "            " << sanitized_plist << "[i + 1] = " << val << ";\n";
+                        code << "            found = true;\n";
+                        code << "            break;\n";
+                        code << "        }\n";
+                        code << "    }\n";
+                        code << "    if (!found) {\n";
+                        code << "        " << sanitized_plist << ".push_back(" << key << ");\n";
+                        code << "        " << sanitized_plist << ".push_back(" << val << ");\n";
+                        code << "    }\n";
+                        return sanitized_plist;
+                    }
+                }
+
+                if (op_name == "plist-member") {
+                    if (node->children.size() == 3) {
+                        std::string plist = generateExpr(node->children[1]);
+                        std::string key = generateExpr(node->children[2]);
+                        std::string temp = getTempVar();
+                        code << "    auto " << temp << "_plist = " << plist << ";\n";
+                        code << "    int " << temp << " = 0;\n";
+                        code << "    for (size_t i = 0; i < " << temp << "_plist.size(); i += 2) {\n";
+                        code << "        if (" << temp << "_plist[i] == " << key << ") {\n";
+                        code << "            " << temp << " = 1;\n";
+                        code << "            break;\n";
+                        code << "        }\n";
+                        code << "    }\n";
+                        return temp;
+                    }
+                }
+
                 // not - logical negation
                 if (op_name == "not" || op_name == "null") {
                     if (node->children.size() == 2) {
