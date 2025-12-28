@@ -518,14 +518,126 @@ class CodeGenerator {
                            generateExpr(node->children[2]) + ")";
                 }
 
+                // setcar - set car of cons cell (destructive)
+                if (op_name == "setcar") {
+                    if (node->children.size() == 3) {
+                        std::string list_var = node->children[1]->str_value;
+                        std::string sanitized = sanitizeIdentifier(list_var);
+                        std::string val = generateExpr(node->children[2]);
+                        code << "    " << sanitized << "[0] = " << val << ";\n";
+                        return val;
+                    }
+                }
+
+                // setcdr - set cdr of cons cell (destructive)
+                if (op_name == "setcdr") {
+                    if (node->children.size() == 3) {
+                        std::string list_var = node->children[1]->str_value;
+                        std::string sanitized = sanitizeIdentifier(list_var);
+                        std::string val = generateExpr(node->children[2]);
+                        code << "    " << sanitized << "[1] = " << val << ";\n";
+                        return val;
+                    }
+                }
+
                 if (op_name == "car") {
                     // car returns first element of cons cell
-                    return "(" + generateExpr(node->children[1]) + ").first";
+                    return "(" + generateExpr(node->children[1]) + ")[0]";
                 }
 
                 if (op_name == "cdr") {
-                    // cdr returns second element of cons cell
-                    return "(" + generateExpr(node->children[1]) + ").second";
+                    // cdr returns rest of list (simplified: return second element)
+                    return "(" + generateExpr(node->children[1]) + ")[1]";
+                }
+
+                // Car/cdr combinations
+                if (op_name == "caar") {
+                    return "(" + generateExpr(node->children[1]) + ")[0][0]";
+                }
+
+                if (op_name == "cadr") {
+                    return "(" + generateExpr(node->children[1]) + ")[1]";
+                }
+
+                if (op_name == "cdar") {
+                    return "(" + generateExpr(node->children[1]) + ")[0][1]";
+                }
+
+                if (op_name == "cddr") {
+                    return "(" + generateExpr(node->children[1]) + ")[2]";
+                }
+
+                if (op_name == "caaar") {
+                    return "(" + generateExpr(node->children[1]) + ")[0][0][0]";
+                }
+
+                if (op_name == "caadr") {
+                    return "(" + generateExpr(node->children[1]) + ")[1][0]";
+                }
+
+                if (op_name == "cadar") {
+                    return "(" + generateExpr(node->children[1]) + ")[0][1]";
+                }
+
+                if (op_name == "caddr") {
+                    return "(" + generateExpr(node->children[1]) + ")[2]";
+                }
+
+                if (op_name == "cdaar") {
+                    return "(" + generateExpr(node->children[1]) + ")[0][0][1]";
+                }
+
+                if (op_name == "cdadr") {
+                    return "(" + generateExpr(node->children[1]) + ")[1][1]";
+                }
+
+                if (op_name == "cddar") {
+                    return "(" + generateExpr(node->children[1]) + ")[0][2]";
+                }
+
+                if (op_name == "cdddr") {
+                    return "(" + generateExpr(node->children[1]) + ")[3]";
+                }
+
+                // Nth element access functions
+                if (op_name == "first") {
+                    return "(" + generateExpr(node->children[1]) + ")[0]";
+                }
+
+                if (op_name == "second") {
+                    return "(" + generateExpr(node->children[1]) + ")[1]";
+                }
+
+                if (op_name == "third") {
+                    return "(" + generateExpr(node->children[1]) + ")[2]";
+                }
+
+                if (op_name == "fourth") {
+                    return "(" + generateExpr(node->children[1]) + ")[3]";
+                }
+
+                if (op_name == "fifth") {
+                    return "(" + generateExpr(node->children[1]) + ")[4]";
+                }
+
+                if (op_name == "sixth") {
+                    return "(" + generateExpr(node->children[1]) + ")[5]";
+                }
+
+                if (op_name == "seventh") {
+                    return "(" + generateExpr(node->children[1]) + ")[6]";
+                }
+
+                if (op_name == "eighth") {
+                    return "(" + generateExpr(node->children[1]) + ")[7]";
+                }
+
+                if (op_name == "ninth") {
+                    return "(" + generateExpr(node->children[1]) + ")[8]";
+                }
+
+                if (op_name == "tenth") {
+                    return "(" + generateExpr(node->children[1]) + ")[9]";
                 }
 
                 if (op_name == "list") {
