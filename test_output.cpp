@@ -3,7 +3,11 @@
 #include <vector>
 #include <string>
 
+int my_func() {
+    return 0;
+}
+
 int main() {
-    std::cout << ((int)std::string("hello").length()) << std::endl;
+    std::cout << "my-func" << std::endl;
     return 0;
 }

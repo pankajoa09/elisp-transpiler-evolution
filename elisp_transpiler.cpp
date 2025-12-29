@@ -547,9 +547,9 @@ class CodeGenerator {
 
                 // Built-in functions
                 if (op_name == "cons") {
-                    // For simplicity, represent cons as creating a pair
-                    return "std::make_pair(" + generateExpr(node->children[1]) + ", " +
-                           generateExpr(node->children[2]) + ")";
+                    // Represent cons as a 2-element vector for consistency with car/cdr
+                    return "std::vector<int>{" + generateExpr(node->children[1]) + ", " +
+                           generateExpr(node->children[2]) + "}";
                 }
 
                 // setcar - set car of cons cell (destructive)
@@ -575,12 +575,12 @@ class CodeGenerator {
                 }
 
                 if (op_name == "car") {
-                    // car returns first element of cons cell
+                    // car returns first element
                     return "(" + generateExpr(node->children[1]) + ")[0]";
                 }
 
                 if (op_name == "cdr") {
-                    // cdr returns rest of list (simplified: return second element)
+                    // cdr returns second element
                     return "(" + generateExpr(node->children[1]) + ")[1]";
                 }
 
